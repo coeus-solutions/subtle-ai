@@ -12,11 +12,13 @@ import {
   Clock,
   Info,
   Video as VideoIcon,
-  ArrowRight
+  ArrowRight,
+  Timer,
+  DollarSign
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import { videos, subtitles } from '@/lib/api-client';
-import type { Video, Subtitle } from '@/lib/api-client';
+import { videos, subtitles, users } from '@/lib/api-client';
+import type { Video, Subtitle, UserDetails } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -40,6 +42,7 @@ import {
 } from "@/components/ui/tooltip";
 import { convertSrtToVtt } from '@/lib/subtitle-utils';
 import { useToast } from "@/hooks/use-toast";
+import { useUserDetails } from '@/hooks/use-user-details';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English' },
@@ -163,22 +166,9 @@ function VideoCard({ video, onDelete, vttUrls }: {
 
     try {
       setIsDeleting(true);
-      await videos.delete(video.uuid);
-      onDelete(video.uuid);
-      toast({
-        variant: "success",
-        title: "Video Deleted",
-        description: `"${video.original_name || 'Untitled Video'}" and its subtitles have been removed successfully.`,
-        duration: 3000,
-      });
+      await onDelete(video.uuid);
     } catch (error) {
       console.error('Delete failed:', error);
-      toast({
-        variant: "destructive",
-        title: "Deletion Failed",
-        description: "Could not delete the video. Please try again later.",
-        duration: 3000,
-      });
     } finally {
       setIsDeleting(false);
     }
@@ -229,7 +219,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
                 <div className="text-center text-white">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
                   <p className="text-sm font-medium">
-                    {video.status === 'processing' ? 'Generating Subtitles...' : 'Uploading...'}
+                    Generating Subtitles...
                   </p>
                 </div>
               </div>
@@ -238,7 +228,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
         )}
         <div className="absolute top-2 right-2 flex gap-2">
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full border backdrop-blur-sm ${getStatusBadgeStyle()}`}>
-            {video.status}
+            {video.status === 'uploading' ? 'processing' : video.status}
           </span>
         </div>
         <div className="absolute bottom-2 right-2 flex items-center gap-2">
@@ -264,7 +254,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <Button 
                   variant="outline"
                   size="sm"
                   onClick={handleDelete}
@@ -320,7 +310,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
+                  <Button
                     variant="secondary" 
                     size="sm"
                     onClick={handleGenerateSubtitles}
@@ -383,6 +373,7 @@ export function DashboardOverview() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [vttUrlsMap, setVttUrlsMap] = useState<Record<string, Record<string, string>>>({});
+  const { fetchUserDetails } = useUserDetails();
   const { toast } = useToast();
 
   // Function to convert subtitles for a video
@@ -431,12 +422,13 @@ export function DashboardOverview() {
 
   // Initial load
   useEffect(() => {
-    const loadInitialVideos = async () => {
+    const loadInitialData = async () => {
       setIsLoading(true);
       await fetchVideos();
+      await fetchUserDetails();
       setIsLoading(false);
     };
-    loadInitialVideos();
+    loadInitialData();
 
     // Cleanup on unmount
     return () => {
@@ -445,8 +437,30 @@ export function DashboardOverview() {
   }, []);
 
   // Function to handle video deletion
-  const handleVideoDelete = (videoId: string) => {
-    setVideoList(prevVideos => prevVideos.filter(v => v.uuid !== videoId));
+  const handleVideoDelete = async (videoId: string) => {
+    try {
+      // First delete from the API
+      await videos.delete(videoId);
+      
+      // If successful, update the UI
+      setVideoList(prevVideos => prevVideos.filter(v => v.uuid !== videoId));
+      
+      // Show success toast
+      toast({
+        variant: "success",
+        title: "Video Deleted",
+        description: "Video and its subtitles have been removed successfully.",
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Delete failed:', error);
+      toast({
+        variant: "destructive",
+        title: "Deletion Failed",
+        description: "Could not delete the video. Please try again later.",
+        duration: 3000,
+      });
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -456,65 +470,44 @@ export function DashboardOverview() {
     try {
       setIsUploading(true);
       setError(null);
-      
-      // Upload the video
-      const uploadResponse = await videos.upload({ file, language: selectedLanguage });
-      
-      // Create a temporary video object to show immediately
+
+      // Upload video
+      const uploadResponse = await videos.upload({
+        file,
+        language: selectedLanguage
+      });
+
+      // Add video to list
       const newVideo: Video = {
         uuid: uploadResponse.video_uuid,
         video_url: uploadResponse.file_url,
         original_name: file.name,
         duration_minutes: 0,
-        status: 'processing',
+        status: 'uploading',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         has_subtitles: false,
-        subtitle_languages: [selectedLanguage],
+        subtitle_languages: [],
         subtitles: []
       };
 
-      // Update the video list immediately to show processing state
-      setVideoList(prevVideos => [newVideo, ...prevVideos]);
-      
-      // Close modal and reset file input
+      setVideoList(prev => [newVideo, ...prev]);
       setIsUploadModalOpen(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      event.target.value = '';
 
-      // Start subtitle generation
-      const generationResponse = await videos.generateSubtitles(uploadResponse.video_uuid, selectedLanguage);
+      // Generate subtitles
+      const generationResponse = await videos.generateSubtitles(
+        uploadResponse.video_uuid,
+        selectedLanguage
+      );
 
-      // Only proceed if generation was successful
-      if (generationResponse.status === 'completed' && generationResponse.subtitle_url) {
-        try {
-          // Convert subtitle to VTT first
-          console.log('Converting new subtitle to VTT:', {
-            videoId: uploadResponse.video_uuid,
-            subtitleUrl: generationResponse.subtitle_url
-          });
-
-          const vttUrl = await convertSrtToVtt(generationResponse.subtitle_url);
-          
-          console.log('Successfully converted to VTT:', {
-            videoId: uploadResponse.video_uuid,
-            vttUrl
-          });
-
-          // Update VTT URLs map first
-          setVttUrlsMap(prev => ({
-            ...prev,
-            [uploadResponse.video_uuid]: {
-              [generationResponse.language]: vttUrl
-            }
-          }));
-
-          // Then update the video with all information
-          const updatedVideo: Video = {
-            ...newVideo,
-            status: generationResponse.status,
-            duration_minutes: generationResponse.duration_minutes,
+      // Update video in list with subtitle info
+      setVideoList(prev => prev.map(v => {
+        if (v.uuid === uploadResponse.video_uuid) {
+          return {
+            ...v,
+            status: generationResponse.status as Video['status'],
+            duration_minutes: generationResponse.duration_minutes || 0,
             has_subtitles: true,
             subtitle_languages: [generationResponse.language],
             subtitles: [{
@@ -524,67 +517,35 @@ export function DashboardOverview() {
               created_at: new Date().toISOString()
             }]
           };
-
-          // Finally update the video list
-          setVideoList(prevVideos => prevVideos.map(video => 
-            video.uuid === uploadResponse.video_uuid ? updatedVideo : video
-          ));
-
-          // Show success toast
-          toast({
-            variant: "success",
-            title: "Subtitles Generated",
-            description: `Subtitles for "${file.name}" are now ready.`,
-            duration: 3000,
-          });
-
-        } catch (error) {
-          console.error('Error converting new subtitle to VTT:', error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to process subtitles. Please try again.",
-            duration: 3000,
-          });
-          // Update video status even if VTT conversion fails
-          setVideoList(prevVideos => prevVideos.map(video => 
-            video.uuid === uploadResponse.video_uuid 
-              ? {
-                  ...video,
-                  status: generationResponse.status,
-                  duration_minutes: generationResponse.duration_minutes,
-                  has_subtitles: true,
-                  subtitle_languages: [generationResponse.language],
-                  subtitles: [{
-                    uuid: generationResponse.subtitle_uuid,
-                    language: generationResponse.language,
-                    subtitle_url: generationResponse.subtitle_url,
-                    created_at: new Date().toISOString()
-                  }]
-                }
-              : video
-          ));
         }
-      } else {
-        // Show error toast for failed generation
-        toast({
-          variant: "destructive",
-          title: "Generation Failed",
-          description: "Failed to generate subtitles. Please try again.",
-          duration: 3000,
-        });
-        // Update video with generation response even if not completed
-        setVideoList(prevVideos => prevVideos.map(video => 
-          video.uuid === uploadResponse.video_uuid 
-            ? {
-                ...video,
-                status: generationResponse.status,
-                duration_minutes: generationResponse.duration_minutes || 0
-              }
-            : video
-        ));
-      }
-      
+        return v;
+      }));
+
+      // Convert subtitles for the new video
+      const updatedVideo: Video = {
+        ...newVideo,
+        status: generationResponse.status as Video['status'],
+        duration_minutes: generationResponse.duration_minutes || 0,
+        has_subtitles: true,
+        subtitle_languages: [generationResponse.language],
+        subtitles: [{
+          uuid: generationResponse.subtitle_uuid,
+          language: generationResponse.language,
+          subtitle_url: generationResponse.subtitle_url,
+          created_at: new Date().toISOString()
+        }]
+      };
+      await convertSubtitlesForVideo(updatedVideo);
+
+      // Refresh user details to update minutes
+      await fetchUserDetails();
+
+      toast({
+        variant: "success",
+        title: "Success",
+        description: "Video uploaded and subtitles generated successfully.",
+        duration: 3000,
+      });
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to process video');
       console.error('Error processing video:', err);
@@ -620,13 +581,13 @@ export function DashboardOverview() {
   }
 
   return (
-    <div className="p-6 relative">
+    <div className="p-6 pl-8 relative">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-gray-900">
-          Video Studio
+          Videos
         </h1>
         <p className="mt-1 text-gray-600">
-          Transform your videos with AI-powered subtitles in minutes
+          Upload videos and generate accurate AI-powered subtitles in multiple languages
         </p>
       </div>
 

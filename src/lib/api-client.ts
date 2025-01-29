@@ -6,6 +6,14 @@ if (!API_BASE_URL) {
   throw new Error('VIDEO_ANALYZER_API_URL environment variable is not set');
 }
 
+export const SUPPORTED_LANGUAGES = {
+  'en': 'English',
+  'es': 'Spanish',
+  'fr': 'French',
+  'de': 'German',
+  'ja': 'Japanese'
+} as const;
+
 // Auth Types
 export interface RegisterData {
   email: string;
@@ -68,9 +76,13 @@ export interface VideoDeleteResponse {
 // Subtitle Types
 export interface Subtitle {
   uuid: string;
-  language: string;
+  video_uuid: string;
+  video_original_name: string | null;
   subtitle_url: string;
+  format: string;
+  language: keyof typeof SUPPORTED_LANGUAGES;
   created_at: string;
+  updated_at: string;
 }
 
 export interface SubtitleListResponse {
@@ -89,6 +101,19 @@ export interface SubtitleGenerationResponse {
   duration_minutes: number;
   processing_cost: number;
   detail: string;
+}
+
+// User Types
+export interface UserDetails {
+  email: string;
+  minutes_consumed: number;
+  free_minutes_used: number;
+  total_cost: number;
+  minutes_remaining: number;
+  cost_per_minute: number;
+  free_minutes_allocation: number;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 const apiClient = axios.create({
@@ -177,6 +202,13 @@ export const subtitles = {
     });
     return response.data;
   },
+};
+
+export const users = {
+  async me(): Promise<UserDetails> {
+    const response = await apiClient.get('/users/me');
+    return response.data;
+  }
 };
 
 export default apiClient; 

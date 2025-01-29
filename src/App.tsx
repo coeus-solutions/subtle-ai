@@ -13,6 +13,8 @@ import { SubtitlesPage } from '@/pages/dashboard/subtitles';
 import { ProfilePage } from '@/pages/dashboard/profile';
 import { PrivacyPolicyPage } from '@/pages/privacy-policy';
 import { TermsOfServicePage } from '@/pages/terms-of-service';
+import { BillingPage } from '@/pages/dashboard/billing';
+import { SettingsPage } from '@/pages/dashboard/settings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -86,6 +88,20 @@ function AppRoutes() {
         <ProtectedRoute>
           <DashboardLayout>
             <SubtitlesPage />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/billing" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <BillingPage />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/settings" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <SettingsPage />
           </DashboardLayout>
         </ProtectedRoute>
       } />
