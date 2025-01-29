@@ -11,6 +11,8 @@ import { DashboardOverview } from '@/pages/dashboard/overview';
 import { VideosPage } from '@/pages/dashboard/videos';
 import { SubtitlesPage } from '@/pages/dashboard/subtitles';
 import { ProfilePage } from '@/pages/dashboard/profile';
+import { PrivacyPolicyPage } from '@/pages/privacy-policy';
+import { TermsOfServicePage } from '@/pages/terms-of-service';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -47,6 +49,20 @@ function AppRoutes() {
         <>
           <Header />
           <RegisterPage />
+          <Footer />
+        </>
+      } />
+      <Route path="/privacy-policy" element={
+        <>
+          <Header />
+          <PrivacyPolicyPage />
+          <Footer />
+        </>
+      } />
+      <Route path="/terms-of-service" element={
+        <>
+          <Header />
+          <TermsOfServicePage />
           <Footer />
         </>
       } />

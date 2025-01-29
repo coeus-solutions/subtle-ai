@@ -1,74 +1,53 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Video, Mail, Phone, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 
 export function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:py-16 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-          {/* Company Info */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Video className="h-6 w-6 text-blue-500" />
-              <span className="text-xl font-bold text-white">VideoAnalyzer</span>
-            </div>
-            <p className="text-sm">
-              Advanced video analysis and subtitle generation tool powered by AI technology.
+      <div className="max-w-6xl mx-auto px-4 py-12 sm:px-6 lg:py-16 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* Left Column - Logo and Company Info */}
+          <div>
+            <Logo textClassName="text-white" />
+            <p className="mt-4 text-sm text-gray-400 max-w-md">
+              Transform your videos with AI-powered subtitles in minutes. Powered by advanced AI for maximum precision.
             </p>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-2">
-              {['About', 'Features', 'Pricing', 'Blog'].map((item) => (
-                <li key={item}>
-                  <Link to={`/${item.toLowerCase()}`} className="text-sm hover:text-white transition-colors">
-                    {item}
-                  </Link>
-                </li>
+            <div className="mt-8 flex items-center space-x-6">
+              {['Privacy Policy', 'Terms of Service'].map((item) => (
+                <Link
+                  key={item}
+                  to={`/${item.toLowerCase().replace(/\s+/g, '-')}`}
+                  className="text-sm text-gray-400 hover:text-white transition-colors"
+                >
+                  {item}
+                </Link>
               ))}
-            </ul>
+            </div>
           </div>
 
-          {/* Legal */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Legal</h3>
-            <ul className="space-y-2">
-              {['Terms of Service', 'Privacy Policy', 'Cookie Policy'].map((item) => (
-                <li key={item}>
-                  <Link to={`/${item.toLowerCase().replace(/\s+/g, '-')}`} className="text-sm hover:text-white transition-colors">
-                    {item}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Contact Us</h3>
-            <ul className="space-y-3">
-              <li className="flex items-center space-x-3">
-                <Mail className="h-5 w-5 text-blue-500" />
-                <span className="text-sm">support@videoanalyzer.com</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <Phone className="h-5 w-5 text-blue-500" />
-                <span className="text-sm">+1 (555) 123-4567</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <MapPin className="h-5 w-5 text-blue-500" />
-                <span className="text-sm">123 Tech Street, CA 94107</span>
-              </li>
-            </ul>
+          {/* Right Column - Contact Info */}
+          <div className="flex justify-end">
+            <div>
+              <div className="flex items-center space-x-2 text-blue-400 mb-4">
+                <MapPin className="h-5 w-5" />
+                <span className="font-medium">Our Office</span>
+              </div>
+              <div>
+                <p className="text-sm">1606 Headway Cir</p>
+                <p className="text-sm">STE 9810</p>
+                <p className="text-sm">Austin, TX 78754</p>
+                <p className="text-sm">United States</p>
+              </div>
+            </div>
           </div>
         </div>
 
+        {/* Copyright - Bottom */}
         <div className="mt-12 pt-8 border-t border-gray-800">
-          <p className="text-center text-sm">
-            © {new Date().getFullYear()} VideoAnalyzer. All rights reserved.
+          <p className="text-sm text-gray-400 text-center">
+            © {new Date().getFullYear()} SubtleAI. All rights reserved.
           </p>
         </div>
       </div>
