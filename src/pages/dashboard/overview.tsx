@@ -14,7 +14,8 @@ import {
   Video as VideoIcon,
   ArrowRight,
   Timer,
-  DollarSign
+  DollarSign,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { videos, subtitles, users } from '@/lib/api-client';
@@ -41,7 +42,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { convertSrtToVtt } from '@/lib/subtitle-utils';
-import { useToast } from "@/hooks/use-toast";
+import toast from 'react-hot-toast';
 import { useUserDetails } from '@/hooks/use-user-details';
 
 const SUPPORTED_LANGUAGES = [
@@ -60,7 +61,6 @@ function VideoCard({ video, onDelete, vttUrls }: {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { toast } = useToast();
 
   const formatDuration = (minutes: number): string => {
     const totalSeconds = Math.floor(minutes * 60);
@@ -144,16 +144,66 @@ function VideoCard({ video, onDelete, vttUrls }: {
   const handleGenerateSubtitles = async () => {
     try {
       setIsGenerating(true);
-      const response = await videos.generateSubtitles(video.uuid, video.subtitle_languages[0] || 'en');
+      setError(null);
+
+      const response = await videos.generateSubtitles(
+        video.uuid, 
+        video.subtitle_languages[0] || 'en'
+      );
       
-      // Show success message or handle UI updates
       if (response.status === 'completed') {
-        // You could add a toast notification here if you have one
-        console.log(response.detail);
+        toast.success('Subtitles generated successfully!');
+        // Update video in the list
+        setVideoList(prev => prev.map(v => 
+          v.uuid === video.uuid 
+            ? { ...v, status: 'completed', has_subtitles: true } 
+            : v
+        ));
       }
-    } catch (error: any) {
-      console.error('Generation failed:', error);
-      // You could show an error message to the user here
+    } catch (err: any) {
+      console.error('Generation failed:', err);
+      
+      // Handle different error cases
+      let errorMessage = 'Failed to generate subtitles';
+      const statusCode = err.response?.status;
+      
+      if (err.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        
+        if (detail.includes('OpenAI API error')) {
+          try {
+            const openAIError = JSON.parse(
+              detail.substring(detail.indexOf('{'))
+            );
+            errorMessage = openAIError.error.message || 'Failed to process audio';
+          } catch {
+            errorMessage = 'Failed to process audio file';
+          }
+        } else {
+          switch (statusCode) {
+            case 400:
+              errorMessage = `Invalid request: ${detail}`;
+              break;
+            case 422:
+              errorMessage = `Validation error: ${detail}`;
+              break;
+            case 500:
+              errorMessage = 'Server error while generating subtitles. Please try again.';
+              break;
+            default:
+              errorMessage = detail;
+          }
+        }
+      }
+
+      // Update video status to failed
+      setVideoList(prev => prev.map(v => 
+        v.uuid === video.uuid 
+          ? { ...v, status: 'failed' } 
+          : v
+      ));
+
+      toast.error(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -169,6 +219,8 @@ function VideoCard({ video, onDelete, vttUrls }: {
       await onDelete(video.uuid);
     } catch (error) {
       console.error('Delete failed:', error);
+      // Show error toast
+      toast.error("Failed to delete video. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -188,19 +240,16 @@ function VideoCard({ video, onDelete, vttUrls }: {
               onLoadedMetadata={(e) => {
                 const videoElement = e.currentTarget;
                 // Enable showing of subtitles
-                for (let i = 0; i < videoElement.textTracks.length; i++) {
-                  const track = videoElement.textTracks[i];
-                  track.mode = 'showing';
+                if (video.status === 'completed' && video.has_subtitles) {
+                  const tracks = Array.from(videoElement.textTracks);
+                  tracks.forEach(track => {
+                    track.mode = track.language === video.subtitle_languages[0] ? 'showing' : 'hidden';
+                  });
                 }
               }}
             >
               {video.status === 'completed' && video.has_subtitles && video.subtitles.map(subtitle => {
                 const vttUrl = vttUrls[subtitle.language];
-                console.log('Adding subtitle track:', {
-                  language: subtitle.language,
-                  vttUrl,
-                  hasVtt: !!vttUrl
-                });
                 return vttUrl ? (
                   <track
                     key={subtitle.uuid}
@@ -208,7 +257,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
                     src={vttUrl}
                     srcLang={subtitle.language}
                     label={SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name || subtitle.language}
-                    default={subtitle.language === 'en'}
+                    default={subtitle.language === video.subtitle_languages[0]}
                   />
                 ) : null;
               })}
@@ -374,7 +423,7 @@ export function DashboardOverview() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [vttUrlsMap, setVttUrlsMap] = useState<Record<string, Record<string, string>>>({});
   const { fetchUserDetails } = useUserDetails();
-  const { toast } = useToast();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Function to convert subtitles for a video
   const convertSubtitlesForVideo = async (video: Video) => {
@@ -394,7 +443,34 @@ export function DashboardOverview() {
         ...prev,
         [video.uuid]: vttUrls
       }));
+
+      // Enable subtitles for this video immediately
+      enableSubtitlesForVideo(video.video_url, video.subtitle_languages[0]);
     }
+  };
+
+  // Add a new function to enable subtitles
+  const enableSubtitlesForVideo = (videoUrl: string, defaultLanguage: string) => {
+    // Find all video elements with this video's source
+    const videoElements = document.querySelectorAll('video');
+    videoElements.forEach(videoElement => {
+      if (videoElement.src === videoUrl) {
+        // Wait for tracks to be loaded
+        if (videoElement.textTracks.length > 0) {
+          // Enable the appropriate track
+          Array.from(videoElement.textTracks).forEach(track => {
+            track.mode = track.language === defaultLanguage ? 'showing' : 'hidden';
+          });
+        } else {
+          // If tracks aren't loaded yet, wait for them
+          videoElement.addEventListener('loadedmetadata', () => {
+            Array.from(videoElement.textTracks).forEach(track => {
+              track.mode = track.language === defaultLanguage ? 'showing' : 'hidden';
+            });
+          }, { once: true });
+        }
+      }
+    });
   };
 
   // Cleanup function for object URLs
@@ -445,123 +521,235 @@ export function DashboardOverview() {
       // If successful, update the UI
       setVideoList(prevVideos => prevVideos.filter(v => v.uuid !== videoId));
       
-      // Show success toast
-      toast({
-        variant: "success",
-        title: "Video Deleted",
-        description: "Video and its subtitles have been removed successfully.",
-        duration: 3000,
-      });
+      // Show success toast with a promise
+      toast.promise(
+        Promise.resolve(),
+        {
+          loading: 'Deleting video...',
+          success: 'Video deleted successfully!',
+          error: 'Could not delete the video'
+        }
+      );
     } catch (error) {
       console.error('Delete failed:', error);
-      toast({
-        variant: "destructive",
-        title: "Deletion Failed",
-        description: "Could not delete the video. Please try again later.",
-        duration: 3000,
-      });
+      // Show error toast
+      toast.error("Failed to delete video. Please try again.");
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    try {
-      setIsUploading(true);
-      setError(null);
-
-      // Upload video
-      const uploadResponse = await videos.upload({
-        file,
-        language: selectedLanguage
+    // Check file format
+    const supportedFormats = ['video/mp4', 'video/webm', 'audio/wav'];
+    if (!supportedFormats.includes(file.type)) {
+      setError('Please upload a video file in MP4, WebM, or WAV format.');
+      toast.error("Unsupported file format. Please use MP4, WebM, or WAV.", {
+        duration: 4000,
       });
-
-      // Add video to list
-      const newVideo: Video = {
-        uuid: uploadResponse.video_uuid,
-        video_url: uploadResponse.file_url,
-        original_name: file.name,
-        duration_minutes: 0,
-        status: 'uploading',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        has_subtitles: false,
-        subtitle_languages: [],
-        subtitles: []
-      };
-
-      setVideoList(prev => [newVideo, ...prev]);
-      setIsUploadModalOpen(false);
       event.target.value = '';
+      return;
+    }
 
-      // Generate subtitles
-      const generationResponse = await videos.generateSubtitles(
-        uploadResponse.video_uuid,
-        selectedLanguage
-      );
+    // Check file size (20MB = 20 * 1024 * 1024 bytes)
+    const maxSize = 20 * 1024 * 1024; // 20MB in bytes
+    if (file.size > maxSize) {
+      const fileSize = (file.size / (1024 * 1024)).toFixed(1);
+      setError(`File size must be less than 20 MB. Your file is ${fileSize} MB.`);
+      toast.error(`File too large (${fileSize} MB). Maximum size is 20 MB.`, {
+        duration: 4000,
+      });
+      event.target.value = '';
+      return;
+    }
 
-      // Update video in list with subtitle info
-      setVideoList(prev => prev.map(v => {
-        if (v.uuid === uploadResponse.video_uuid) {
-          return {
-            ...v,
+    // If all validations pass
+    setSelectedFile(file);
+    setError(null);
+    
+    // Show success toast
+    toast.success("File selected! Choose the target language.", {
+      icon: '🎥',
+    });
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile || !selectedLanguage) return;
+
+    const uploadPromise = (async () => {
+      try {
+        setIsUploading(true);
+        setError(null);
+
+        // Upload video
+        let uploadResponse;
+        try {
+          uploadResponse = await videos.upload({
+            file: selectedFile,
+            language: selectedLanguage
+          });
+        } catch (err: any) {
+          // Handle upload API errors
+          const errorMessage = err.response?.data?.detail || 'Failed to upload video';
+          const statusCode = err.response?.status;
+
+          switch (statusCode) {
+            case 400:
+              throw new Error(`Invalid request: ${errorMessage}`);
+            case 413:
+              throw new Error('File size too large. Maximum size is 20MB.');
+            case 415:
+              throw new Error('Unsupported file format. Please use MP4, WebM, or WAV.');
+            case 422:
+              throw new Error(`Validation error: ${errorMessage}`);
+            case 500:
+              throw new Error('Server error. Please try again later.');
+            default:
+              throw new Error(errorMessage);
+          }
+        }
+
+        // Add video to list
+        const newVideo: Video = {
+          uuid: uploadResponse.video_uuid,
+          video_url: uploadResponse.file_url,
+          original_name: selectedFile.name,
+          duration_minutes: 0,
+          status: 'uploading',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          has_subtitles: false,
+          subtitle_languages: [],
+          subtitles: []
+        };
+
+        setVideoList(prev => [newVideo, ...prev]);
+        setIsUploadModalOpen(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+
+        try {
+          // Generate subtitles
+          const generationResponse = await videos.generateSubtitles(
+            uploadResponse.video_uuid,
+            selectedLanguage
+          );
+
+          // Update video in list with subtitle info
+          const updatedVideo = {
+            ...newVideo,
             status: generationResponse.status as Video['status'],
             duration_minutes: generationResponse.duration_minutes || 0,
             has_subtitles: true,
             subtitle_languages: [generationResponse.language],
             subtitles: [{
               uuid: generationResponse.subtitle_uuid,
-              language: generationResponse.language,
+              language: generationResponse.language as "en" | "es" | "fr" | "de" | "ja",
               subtitle_url: generationResponse.subtitle_url,
-              created_at: new Date().toISOString()
+              created_at: new Date().toISOString(),
+              video_uuid: uploadResponse.video_uuid,
+              video_original_name: selectedFile.name,
+              format: 'srt',
+              updated_at: new Date().toISOString()
             }]
           };
+
+          setVideoList(prev => prev.map(v => 
+            v.uuid === uploadResponse.video_uuid ? updatedVideo : v
+          ));
+
+          // Convert and enable subtitles immediately
+          await convertSubtitlesForVideo(updatedVideo);
+
+          // Refresh user details to update minutes
+          await fetchUserDetails();
+
+          return "Video uploaded and subtitles generated successfully!";
+        } catch (err: any) {
+          // Update video status to failed
+          setVideoList(prev => prev.map(v => {
+            if (v.uuid === uploadResponse.video_uuid) {
+              return {
+                ...v,
+                status: 'failed'
+              };
+            }
+            return v;
+          }));
+
+          // Extract and format the error message
+          let errorMessage = 'Failed to generate subtitles';
+          
+          // Handle subtitle generation API errors
+          const statusCode = err.response?.status;
+          if (err.response?.data?.detail) {
+            const detail = err.response.data.detail;
+            
+            // Handle OpenAI specific errors
+            if (detail.includes('OpenAI API error')) {
+              try {
+                const openAIError = JSON.parse(
+                  detail.substring(detail.indexOf('{'))
+                );
+                errorMessage = openAIError.error.message || 'Failed to process audio';
+              } catch {
+                errorMessage = 'Failed to process audio file';
+              }
+            } else {
+              // Handle other API errors
+              switch (statusCode) {
+                case 400:
+                  errorMessage = `Invalid request: ${detail}`;
+                  break;
+                case 422:
+                  errorMessage = `Validation error: ${detail}`;
+                  break;
+                case 500:
+                  errorMessage = 'Server error while generating subtitles. Please try again.';
+                  break;
+                default:
+                  errorMessage = detail;
+              }
+            }
+          }
+          throw new Error(errorMessage);
         }
-        return v;
-      }));
+      } catch (err: any) {
+        setError(err.message || 'Failed to process video');
+        console.error('Error processing video:', err);
+        throw new Error(err.message || 'Failed to process video');
+      } finally {
+        setIsUploading(false);
+        setSelectedFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    })();
 
-      // Convert subtitles for the new video
-      const updatedVideo: Video = {
-        ...newVideo,
-        status: generationResponse.status as Video['status'],
-        duration_minutes: generationResponse.duration_minutes || 0,
-        has_subtitles: true,
-        subtitle_languages: [generationResponse.language],
-        subtitles: [{
-          uuid: generationResponse.subtitle_uuid,
-          language: generationResponse.language,
-          subtitle_url: generationResponse.subtitle_url,
-          created_at: new Date().toISOString()
-        }]
-      };
-      await convertSubtitlesForVideo(updatedVideo);
-
-      // Refresh user details to update minutes
-      await fetchUserDetails();
-
-      toast({
-        variant: "success",
-        title: "Success",
-        description: "Video uploaded and subtitles generated successfully.",
-        duration: 3000,
-      });
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to process video');
-      console.error('Error processing video:', err);
-      toast({
-        variant: "destructive",
-        title: "Upload Failed",
-        description: err.response?.data?.detail || 'Failed to process video',
-        duration: 3000,
-      });
-    } finally {
-      setIsUploading(false);
-    }
+    // Show toast with promise
+    toast.promise(
+      uploadPromise,
+      {
+        loading: 'Uploading video...',
+        success: (message) => message,
+        error: (err) => err.message
+      },
+      {
+        duration: 5000,
+      }
+    );
   };
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
+  };
+
+  // Add a function to check if any video is currently processing
+  const isAnyVideoProcessing = () => {
+    return videoList.some(video => video.status === 'uploading' || video.status === 'processing');
   };
 
   if (isLoading) {
@@ -595,60 +783,166 @@ export function DashboardOverview() {
       <Button
         onClick={() => setIsUploadModalOpen(true)}
         size="lg"
-        className="fixed bottom-6 right-6 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90"
+        className="fixed bottom-6 right-6 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={isAnyVideoProcessing()}
       >
-        <Plus className="w-4 h-4 mr-2" />
-        Upload Video
+        {isAnyVideoProcessing() ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          <>
+            <Plus className="w-4 h-4 mr-2" />
+            Upload Video
+          </>
+        )}
       </Button>
 
       {/* Upload Modal */}
-      <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+      <Dialog open={isUploadModalOpen && !isAnyVideoProcessing()} onOpenChange={(open) => {
+        // Only allow opening if no video is processing
+        if (isAnyVideoProcessing()) {
+          return;
+        }
+        setIsUploadModalOpen(open);
+        if (!open) {
+          setSelectedFile(null);
+          setSelectedLanguage('en');
+          setError(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }
+      }}>
         <DialogContent className="sm:max-w-[425px] z-[100] bg-white">
           <DialogHeader>
             <DialogTitle>Upload Video</DialogTitle>
-            <DialogDescription>
-              Select a video file and choose the language for subtitle generation
+            <DialogDescription className="space-y-2">
+              <p>Select a video file and choose the language for subtitle generation</p>
+              <div className="mt-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                <div className="font-medium mb-1">File requirements:</div>
+                <ul className="list-disc list-inside space-y-1 text-blue-600">
+                  <li>Maximum file size: 20 MB</li>
+                  <li>Supported formats: MP4, WAV, WebM</li>
+                </ul>
+              </div>
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200">
+                {error}
+              </div>
+            )}
+
             <input
               ref={fileInputRef}
               type="file"
               className="hidden"
-              accept="video/*"
-              onChange={handleFileUpload}
+              accept="video/mp4,video/webm,audio/wav"
+              onChange={handleFileSelect}
               disabled={isUploading}
             />
             
             <div className="flex flex-col gap-4">
-              <Select
-                value={selectedLanguage}
-                onValueChange={setSelectedLanguage}
-                disabled={isUploading}
-              >
-                <SelectTrigger className="w-full bg-white">
-                  <SelectValue placeholder="Select Language" />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={8} className="bg-white z-[110]">
-                  {SUPPORTED_LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {selectedFile && (
+                <div className="flex flex-col">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <VideoIcon className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-base font-semibold text-gray-900 truncate">
+                            {selectedFile.name}
+                          </p>
+                          {!isUploading && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedFile(null);
+                                if (fileInputRef.current) {
+                                  fileInputRef.current.value = '';
+                                }
+                              }}
+                              className="text-gray-500 hover:text-gray-700"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-sm text-blue-600 font-medium">
+                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-gray-300" />
+                          <span className="text-sm text-gray-500">
+                            Ready to upload
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700">
+                    Target Language for Subtitles
+                  </label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="w-4 h-4 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-sm">Subtitles will be generated in this language</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Select
+                  value={selectedLanguage}
+                  onValueChange={setSelectedLanguage}
+                  disabled={isUploading}
+                >
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue placeholder="Choose subtitle language" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={8} className="bg-white z-[110]">
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                      <SelectItem 
+                        key={lang.code} 
+                        value={lang.code}
+                        className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900"
+                      >
+                        {lang.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <Button
-                onClick={handleUploadClick}
-                disabled={isUploading}
+                onClick={selectedFile ? handleUpload : handleUploadClick}
+                disabled={isUploading || (selectedFile && !selectedLanguage)}
                 size="lg"
                 className="w-full bg-primary hover:bg-primary/90"
               >
                 {isUploading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Uploading...
+                    Processing video...
+                  </>
+                ) : selectedFile ? (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Generate Subtitles
                   </>
                 ) : (
                   <>
@@ -680,6 +974,7 @@ export function DashboardOverview() {
         ))}
       </div>
 
+      {/* Empty State */}
       {videoList.length === 0 && !isLoading && (
         <div className="text-center py-16 px-4 rounded-xl border-2 border-dashed border-gray-200 bg-white">
           <div className="flex justify-center mb-4">
@@ -695,9 +990,16 @@ export function DashboardOverview() {
           <h3 className="text-lg font-semibold text-gray-900 mb-1">
             No videos yet
           </h3>
-          <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+          <p className="text-gray-500 mb-4 max-w-sm mx-auto">
             Upload your first video and let SubtleAI generate accurate subtitles for you in minutes.
           </p>
+          <div className="max-w-sm mx-auto mb-6 rounded-lg bg-blue-50 p-3 text-sm text-blue-700 text-left">
+            <div className="font-medium mb-1">File requirements:</div>
+            <ul className="list-disc list-inside space-y-1 text-blue-600">
+              <li>Maximum file size: 20 MB</li>
+              <li>Supported formats: MP4, WAV, WebM</li>
+            </ul>
+          </div>
           <Button
             onClick={() => setIsUploadModalOpen(true)}
             className="inline-flex items-center gap-2"

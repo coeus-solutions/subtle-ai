@@ -1,15 +1,15 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { 
   LogOut, 
-  BarChart, 
   User, 
   Info,
   Video,
   Subtitles,
-  History,
   Settings,
-  CreditCard
+  CreditCard,
+  Timer,
+  DollarSign,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
@@ -27,13 +27,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { userDetails, fetchUserDetails } = useUserDetails();
 
-  useEffect(() => {
-    fetchUserDetails();
-  }, []);
+  const getUserInitials = (email: string) => {
+    return email.split('@')[0].slice(0, 2).toUpperCase();
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const getUsagePercentage = () => {
+    if (!userDetails) return 0;
+    return Math.min(100, (userDetails.minutes_consumed / userDetails.free_minutes_allocation) * 100);
+  };
+
+  const getUsageColor = () => {
+    const percentage = getUsagePercentage();
+    if (percentage >= 90) return 'bg-red-500';
+    if (percentage >= 75) return 'bg-yellow-500';
+    return 'bg-blue-500';
   };
 
   return (
@@ -44,63 +56,57 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Logo />
           </Link>
 
-          <div className="flex-1 flex items-center justify-between px-6">
+          <div className="flex-1 flex items-center justify-end px-6 space-x-6">
+            {/* Usage Section */}
             {userDetails && (
-              <div className="flex items-center space-x-2">
-                <div className="w-48 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-blue-600 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${Math.min(100, (userDetails.minutes_consumed / userDetails.free_minutes_allocation) * 100)}%` 
-                    }}
-                  />
+              <div className="flex items-center px-6 py-2.5 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
+                {/* Minutes Usage */}
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2.5">
+                    <Timer className="w-5 h-5 text-gray-500" />
+                    <span className="text-base font-semibold text-gray-900">
+                      {userDetails.minutes_consumed.toFixed(1)} min used
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <div className="w-40 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-300 ${getUsageColor()}`}
+                        style={{ width: `${getUsagePercentage()}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-gray-600">
+                      {userDetails.free_minutes_allocation - userDetails.minutes_consumed > 0 
+                        ? `${(userDetails.free_minutes_allocation - userDetails.minutes_consumed).toFixed(1)} min left`
+                        : 'Quota exceeded'}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-sm text-gray-600 font-medium">
-                  {userDetails.minutes_consumed.toFixed(1)} / {userDetails.free_minutes_allocation} min
-                </span>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="w-4 h-4 text-gray-400 hover:text-gray-600" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Usage Details</p>
-                        <p className="text-xs text-gray-500">Cost per minute: ${userDetails.cost_per_minute.toFixed(2)}</p>
-                        <p className="text-xs text-gray-500">Total cost: ${userDetails.total_cost.toFixed(2)}</p>
-                        <p className="text-xs text-gray-500">Free minutes remaining: {Math.max(0, userDetails.free_minutes_allocation - userDetails.free_minutes_used).toFixed(1)}</p>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
             )}
 
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <User className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-700">{user?.email}</span>
-                </div>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLogout}
-                className="border-gray-200 hover:bg-gray-50"
-              >
-                <LogOut className="w-4 h-4 mr-2 text-gray-500" />
-                Sign out
-              </Button>
-            </div>
+            {/* User Avatar */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-base font-semibold text-blue-600">
+                      {user?.email ? getUserInitials(user.email) : 'U'}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-sm">{user?.email}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
         {/* Left Sidebar */}
-        <div className="w-64 bg-white shadow-lg fixed left-0 top-16 bottom-0 border-r border-gray-100">
-          <nav className="mt-6 px-3 space-y-1">
+        <div className="w-64 bg-white shadow-lg fixed left-0 top-16 bottom-0 border-r border-gray-100 flex flex-col">
+          {/* Navigation Links */}
+          <nav className="flex-1 mt-6 px-3 space-y-1">
             <NavLink
               to="/dashboard"
               end
@@ -160,6 +166,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </NavLink>
             </div>
           </nav>
+
+          {/* Sign Out Button at Bottom */}
+          <div className="p-4 border-t border-gray-100">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-5 h-5 mr-3" />
+              <span className="font-medium">Sign out</span>
+            </Button>
+          </div>
         </div>
 
         {/* Main Content */}
