@@ -9,7 +9,7 @@ export function Footer() {
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-950/10 to-black/50 pointer-events-none" />
       
       <div className="relative border-t border-white/10">
-        <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto py-16 pb-8 px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-16">
             {/* Company Info & Description - 6 columns */}
             <div className="md:col-span-6 space-y-8">
@@ -68,6 +68,13 @@ export function Footer() {
                 <p>United States</p>
               </div>
             </div>
+          </div>
+          
+          {/* Copyright line */}
+          <div className="mt-16 pt-8 pb-4 border-t border-white/10 text-center">
+            <p className="text-sm text-slate-400">
+              © {new Date().getFullYear()} Subtle AI. All rights reserved.
+            </p>
           </div>
         </div>
       </div>
