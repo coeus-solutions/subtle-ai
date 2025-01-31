@@ -162,12 +162,12 @@ export function SubtitlesPage() {
                       </TooltipProvider>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => handleDownload(subtitle)}
                         disabled={downloadingId === subtitle.uuid}
-                        className="inline-flex items-center"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 border-0 shadow-lg transition-all duration-200"
                       >
                         {downloadingId === subtitle.uuid ? (
                           <>

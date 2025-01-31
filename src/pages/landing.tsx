@@ -4,10 +4,12 @@ import {
   Sparkles, Zap, Globe, ChevronLeft, ChevronRight, 
   Play, Video, Presentation, Share2, Download,
   Languages, Subtitles, PlayCircle, ArrowRight, CheckCircle2,
-  Clock, Twitter, Github, Linkedin, Youtube
+  Clock, Twitter, Github, Linkedin, Youtube, Shield, Cpu, 
+  FileCheck, Building2, Users, Star, MessageSquare, Award
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 const SUPPORTED_LANGUAGES = [
   "English", "German", "Spanish", "French", "Japanese"
@@ -279,6 +281,199 @@ const benefits = [
   "Secure file handling"
 ];
 
+const PRICING_TIERS = [
+  {
+    name: "Pay as You Go",
+    description: "Perfect for individual content creators and small projects",
+    price: "0.10",
+    unit: "per minute",
+    features: [
+      "All supported languages",
+      "Real-time preview",
+      "SRT/VTT export",
+      "Basic support",
+      "Pay only for what you use"
+    ],
+    cta: "Start Free",
+    popular: false,
+    gradient: "from-blue-500/20 via-blue-400/10 to-blue-600/5"
+  },
+  {
+    name: "Pro",
+    description: "Ideal for professional content creators and small teams",
+    price: "29",
+    unit: "per month",
+    features: [
+      "600 minutes included",
+      "Additional minutes at $0.08",
+      "Priority processing",
+      "Priority support",
+      "Team collaboration",
+      "API access"
+    ],
+    cta: "Start Pro Trial",
+    popular: true,
+    gradient: "from-purple-500/20 via-pink-500/10 to-blue-500/20"
+  },
+  {
+    name: "Enterprise",
+    description: "Custom solutions for large organizations",
+    price: "Custom",
+    unit: "contact sales",
+    features: [
+      "Custom volume pricing",
+      "Dedicated support",
+      "Custom integrations",
+      "SLA guarantees",
+      "Security assessment",
+      "Training & onboarding"
+    ],
+    cta: "Contact Sales",
+    popular: false,
+    gradient: "from-blue-600/20 via-purple-600/10 to-pink-600/20"
+  }
+];
+
+const TESTIMONIALS = [
+  {
+    name: "Sarah Chen",
+    role: "Content Creator",
+    company: "TechReviews",
+    image: "/testimonials/sarah.jpg",
+    quote: "SubtleAI has revolutionized my workflow. What used to take hours now takes minutes, and the accuracy is incredible.",
+    rating: 5
+  },
+  {
+    name: "Marcus Rodriguez",
+    role: "Production Manager",
+    company: "StreamMedia",
+    image: "/testimonials/marcus.jpg",
+    quote: "The multi-language support and real-time preview have made our international content distribution so much easier.",
+    rating: 5
+  },
+  {
+    name: "Emma Thompson",
+    role: "Educational Director",
+    company: "EduTech Solutions",
+    image: "/testimonials/emma.jpg",
+    quote: "We've seen a 40% reduction in post-production time since switching to SubtleAI. The accuracy and ease of use are unmatched.",
+    rating: 5
+  }
+];
+
+const PROCESS_STEPS = [
+  {
+    icon: <Video className="w-8 h-8 text-blue-400" />,
+    title: "Upload Your Video",
+    description: "Simply drag and drop your video file or paste a URL. We support all major video formats.",
+    mockup: (
+      <div className="relative w-full aspect-video bg-slate-800/50 backdrop-blur-xl rounded-xl p-6 border border-white/10">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-full max-w-md">
+            <div className="border-2 border-dashed border-blue-500/30 rounded-xl p-8 flex flex-col items-center justify-center bg-blue-500/5">
+              <Video className="w-12 h-12 text-blue-400 mb-4 animate-pulse" />
+              <p className="text-blue-300 text-center">Drag and drop your video here or click to browse</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    icon: <Cpu className="w-8 h-8 text-purple-400" />,
+    title: "AI Processing",
+    description: "Our advanced AI analyzes your video and generates accurate subtitles in real-time.",
+    mockup: (
+      <div className="relative w-full aspect-video bg-slate-800/50 backdrop-blur-xl rounded-xl p-6 border border-white/10">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-full max-w-md space-y-4">
+            <div className="h-2 bg-purple-500/20 rounded-full overflow-hidden">
+              <motion.div 
+                className="h-full bg-purple-500"
+                initial={{ width: "0%" }}
+                animate={{ width: "75%" }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </div>
+            <div className="flex items-center gap-4">
+              <Cpu className="w-8 h-8 text-purple-400 animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-2 bg-purple-500/20 rounded-full w-3/4" />
+                <div className="h-2 bg-purple-500/20 rounded-full w-1/2" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    icon: <Languages className="w-8 h-8 text-pink-400" />,
+    title: "Choose Languages",
+    description: "Select from multiple languages for instant translation of your subtitles.",
+    mockup: (
+      <div className="relative w-full aspect-video bg-slate-800/50 backdrop-blur-xl rounded-xl p-6 border border-white/10">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-full max-w-md">
+            <div className="grid grid-cols-2 gap-4">
+              {SUPPORTED_LANGUAGES.map((lang, index) => (
+                <motion.div
+                  key={lang}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-pink-500/10 border border-pink-500/20 rounded-lg p-4 flex items-center gap-3"
+                >
+                  <Languages className="w-5 h-5 text-pink-400" />
+                  <span className="text-pink-200">{lang}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    icon: <FileCheck className="w-8 h-8 text-emerald-400" />,
+    title: "Review & Export",
+    description: "Preview, edit if needed, and export your subtitles in your preferred format.",
+    mockup: (
+      <div className="relative w-full aspect-video bg-slate-800/50 backdrop-blur-xl rounded-xl p-6 border border-white/10">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-full max-w-md space-y-4">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <FileCheck className="w-5 h-5 text-emerald-400" />
+                  <span className="text-emerald-200">subtitles_final.srt</span>
+                </div>
+                <Button size="sm" className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <div className="h-2 bg-emerald-500/20 rounded-full w-full" />
+                <div className="h-2 bg-emerald-500/20 rounded-full w-3/4" />
+                <div className="h-2 bg-emerald-500/20 rounded-full w-1/2" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+];
+
+const TRUST_LOGOS = [
+  { name: "TechCorp", logo: "/logos/techcorp.svg" },
+  { name: "MediaPro", logo: "/logos/mediapro.svg" },
+  { name: "EduTech", logo: "/logos/edutech.svg" },
+  { name: "StreamNet", logo: "/logos/streamnet.svg" },
+  { name: "ContentFlow", logo: "/logos/contentflow.svg" }
+];
+
 export function LandingPage() {
   const [currentLanguage, setCurrentLanguage] = useState(0);
   const [currentFeature, setCurrentFeature] = useState(0);
@@ -431,14 +626,42 @@ export function LandingPage() {
                     </Button>
                   </motion.div>
                 </Link>
-                <motion.p 
-                  className="text-gray-400 font-medium"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.8 }}
-                >
-                  Try for free • No credit card required
-                </motion.p>
+                <div className="flex flex-col items-center sm:items-start gap-2">
+                  <motion.p 
+                    className="text-gray-400 font-medium flex items-center gap-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 }}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                    Try for free • No credit card required
+                  </motion.p>
+                  <motion.div
+                    className="flex items-center gap-3"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.9 }}
+                  >
+                    <div className="flex items-baseline">
+                      <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                        $0.10
+                      </span>
+                      <span className="text-gray-400 text-sm font-medium">/minute</span>
+                    </div>
+                    <span className="text-gray-500">•</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+                        Pay as you go
+                      </span>
+                      <motion.div
+                        initial={{ opacity: 0.5 }}
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-400 to-pink-400"
+                      />
+                    </div>
+                  </motion.div>
+                </div>
               </motion.div>
             </motion.div>
 
@@ -567,14 +790,14 @@ export function LandingPage() {
                               key={element.text}
                               className={`absolute ${
                                 element.position === 'top-right' ? '-top-4 -right-4' : '-bottom-4 -left-4'
-                              } bg-${element.color}-500/20 backdrop-blur-xl rounded-xl p-4 border border-${element.color}-500/30 shadow-xl`}
+                              } bg-${element.color}-500/30 backdrop-blur-xl rounded-xl p-4 border border-${element.color}-500/40 shadow-lg shadow-${element.color}-500/20 z-10`}
                               initial={{ opacity: 0, y: element.position === 'top-right' ? -20 : 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: 0.3 + index * 0.1 }}
                             >
                               <div className="flex items-center gap-2">
                                 {element.icon}
-                                <span className={`text-sm text-${element.color}-200`}>{element.text}</span>
+                                <span className={`text-sm font-medium text-${element.color}-200`}>{element.text}</span>
                               </div>
                             </motion.div>
                           ))}
@@ -623,57 +846,261 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Features Grid */}
-        <section className="relative py-32 bg-black">
+        {/* How It Works Section */}
+        <section className="relative py-24 bg-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                How It Works
+              </h2>
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                Generate professional subtitles in four simple steps
+              </p>
+            </div>
+
+            <div className="space-y-24">
+              {PROCESS_STEPS.map((step, index) => (
+                <motion.div
+                  key={step.title}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.5, delay: index * 0.2 }}
+                  className="relative"
+                >
+                  <div className="grid md:grid-cols-2 gap-12 items-center">
+                    {/* Content */}
+                    <div className={`space-y-6 ${index % 2 === 1 ? 'md:order-2' : ''}`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-${step.icon.props.className.match(/text-(\w+)-/)[1]}-500/20 to-${step.icon.props.className.match(/text-(\w+)-/)[1]}-500/5 border border-${step.icon.props.className.match(/text-(\w+)-/)[1]}-500/20`}>
+                          {step.icon}
+                        </div>
+                        <span className="text-sm font-medium text-gray-400">Step {index + 1}</span>
+                      </div>
+                      <h3 className="text-2xl font-bold text-white">{step.title}</h3>
+                      <p className="text-gray-400 text-lg leading-relaxed">{step.description}</p>
+                    </div>
+
+                    {/* Mockup */}
+                    <div className={index % 2 === 1 ? 'md:order-1' : ''}>
+                      {step.mockup}
+                    </div>
+                  </div>
+
+                  {/* Connector Line */}
+                  {index < PROCESS_STEPS.length - 1 && (
+                    <div className="hidden md:block absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-full w-px h-16 bg-gradient-to-b from-blue-500/50 to-transparent" />
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Trust & Social Proof Section */}
+        <section className="relative py-24 bg-black">
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute w-full h-full">
+              <div className="absolute top-1/4 -left-1/4 w-96 h-96 bg-blue-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
+              <div className="absolute top-3/4 -right-1/4 w-96 h-96 bg-purple-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
+            </div>
+          </div>
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                Trusted by Industry Leaders
+              </h2>
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                Join thousands of content creators and businesses who trust SubtleAI
+              </p>
+            </div>
+
+            {/* Trust Metrics */}
+            <div className="grid md:grid-cols-4 gap-8 mb-16">
+              {[
+                { icon: <Users />, metric: "10,000+", label: "Active Users" },
+                { icon: <Clock />, metric: "1M+", label: "Minutes Processed" },
+                { icon: <MessageSquare />, metric: "99.9%", label: "Accuracy Rate" },
+                { icon: <Award />, metric: "24/7", label: "Support" }
+              ].map((item, index) => (
+                <motion.div
+                  key={item.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-white/5 backdrop-blur-xl rounded-xl p-6 border border-white/10 text-center"
+                >
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-500/10 mb-4">
+                    {item.icon}
+                  </div>
+                  <div className="text-2xl font-bold text-white mb-1">{item.metric}</div>
+                  <div className="text-gray-400">{item.label}</div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Testimonials */}
+            <div className="grid md:grid-cols-3 gap-8">
+              {TESTIMONIALS.map((testimonial, index) => (
+                <motion.div
+                  key={testimonial.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.2 }}
+                  className="bg-white/5 backdrop-blur-xl rounded-xl p-6 border border-white/10"
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <img
+                      src={testimonial.image}
+                      alt={testimonial.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div>
+                      <div className="font-semibold text-white">{testimonial.name}</div>
+                      <div className="text-sm text-gray-400">{testimonial.role} at {testimonial.company}</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 mb-4">
+                    {Array.from({ length: testimonial.rating }).map((_, i) => (
+                      <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-gray-300 italic">"{testimonial.quote}"</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Enhanced Pricing Section */}
+        <section className="relative py-24 bg-black">
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute w-full h-full">
+              <div className="absolute top-1/4 -left-1/4 w-96 h-96 bg-blue-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
+              <div className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-purple-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
+              <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-pink-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000" />
+            </div>
+          </div>
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  Simple, Transparent Pricing
+                </h2>
+                <p className="text-gray-400 max-w-2xl mx-auto">
+                  Choose the plan that best fits your needs. No hidden fees.
+                </p>
+              </motion.div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {PRICING_TIERS.map((tier, index) => (
+                <motion.div
+                  key={tier.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.2 }}
+                  whileHover={{ translateY: -8 }}
+                  className={cn(
+                    "relative bg-gradient-to-br backdrop-blur-xl rounded-xl p-8 border transition-all duration-300",
+                    tier.gradient,
+                    tier.popular
+                      ? "border-purple-500/50 shadow-lg shadow-purple-500/20"
+                      : "border-white/10 hover:border-white/20"
+                  )}
+                >
+                  {tier.popular && (
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 rounded-full text-sm font-medium shadow-lg">
+                      Most Popular
+                    </div>
+                  )}
+
+                  <div className="mb-8">
+                    <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
+                    <p className="text-gray-300 text-sm">{tier.description}</p>
+                  </div>
+
+                  <div className="mb-8">
+                    <div className="flex items-baseline">
+                      {tier.price === "Custom" ? (
+                        <span className="text-4xl font-bold text-white">Custom</span>
+                      ) : (
+                        <>
+                          <span className="text-2xl font-bold text-white">$</span>
+                          <span className="text-4xl font-bold text-white">{tier.price}</span>
+                        </>
+                      )}
+                      <span className="ml-2 text-gray-300">/{tier.unit}</span>
+                    </div>
+                  </div>
+
+                  <ul className="mb-8 space-y-4">
+                    {tier.features.map((feature) => (
+                      <motion.li
+                        key={feature}
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        className="flex items-center gap-2 text-gray-200"
+                      >
+                        <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-purple-500/30 to-blue-500/30 flex items-center justify-center">
+                          <CheckCircle2 className="w-4 h-4 text-white" />
+                        </div>
+                        {feature}
+                      </motion.li>
+                    ))}
+                  </ul>
+
+                  <Button 
+                    className={cn(
+                      "w-full transition-all duration-300",
+                      tier.popular
+                        ? "bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-500 hover:via-pink-500 hover:to-blue-500 shadow-lg hover:shadow-purple-500/25"
+                        : "bg-white/10 hover:bg-white/20"
+                    )}
+                    onClick={() => window.location.href = '/register'}
+                  >
+                    {tier.cta}
+                  </Button>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Enterprise Contact - Enhanced */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="grid md:grid-cols-3 gap-8"
+              className="mt-20 text-center"
             >
-              {[
-                {
-                  icon: <Languages className="w-6 h-6 text-blue-400" />,
-                  title: "Multiple Languages",
-                  description: "Generate subtitles in multiple languages instantly. Perfect for global reach.",
-                  color: "blue"
-                },
-                {
-                  icon: <PlayCircle className="w-6 h-6 text-purple-400" />,
-                  title: "Instant Preview",
-                  description: "Watch your video with subtitles immediately after generation.",
-                  color: "purple"
-                },
-                {
-                  icon: <Download className="w-6 h-6 text-pink-400" />,
-                  title: "Easy Export",
-                  description: "Download subtitles in SRT format for use anywhere.",
-                  color: "pink"
-                }
-              ].map((feature, index) => (
-                <motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.2 }}
-                  whileHover={{ y: -5 }}
-                  className="backdrop-blur-lg bg-white/5 rounded-2xl p-8 border border-white/10 hover:border-white/20 transition-all group"
+              <div className="inline-block bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-blue-500/10 backdrop-blur-xl rounded-2xl p-8 border border-white/10">
+                <h3 className="text-xl font-semibold mb-4">Need a Custom Solution?</h3>
+                <p className="text-gray-300 mb-8 max-w-2xl">
+                  Contact our sales team for custom pricing and features tailored to your organization's needs.
+                </p>
+                <a 
+                  href="mailto:ashaheen+subtleai@workhub.ai"
+                  className="inline-flex items-center px-4 py-2 rounded-lg border border-white/20 hover:border-white/40 hover:bg-white/5 text-white transition-all duration-200 group"
                 >
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-${feature.color}-500/10 mb-6 group-hover:scale-110 transition-transform`}>
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold mb-4 text-white">{feature.title}</h3>
-                  <p className="text-gray-400">{feature.description}</p>
-                </motion.div>
-              ))}
+                  <Building2 className="w-5 h-5 mr-2 group-hover:text-purple-400 transition-colors" />
+                  Contact Enterprise Sales
+                </a>
+              </div>
             </motion.div>
           </div>
         </section>
 
         {/* CTA Section */}
-        <section className="relative py-32 bg-black">
+        <section className="relative py-24 bg-black">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20" />
           </div>

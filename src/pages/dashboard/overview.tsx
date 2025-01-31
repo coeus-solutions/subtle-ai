@@ -329,12 +329,12 @@ function VideoCard({ video, onDelete, vttUrls }: {
               <TooltipProvider key={subtitle.uuid}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => handleDownload(subtitle)}
                       disabled={isDownloading}
-                      className="flex-1 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 hover:text-purple-800 hover:border-purple-300 transition-colors"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 border-0 shadow-lg transition-all duration-200"
                     >
                       {isDownloading ? (
                         <>
@@ -344,7 +344,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
                       ) : (
                         <>
                           <Download className="w-3.5 h-3.5 mr-2" />
-                          {subtitle.language.toUpperCase()}
+                          {SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name || subtitle.language.toUpperCase()}
                         </>
                       )}
                     </Button>

@@ -21,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { motion } from 'framer-motion';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -51,31 +52,45 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="flex h-screen bg-gray-50">
         {/* Top Bar */}
-        <div className="fixed top-0 left-0 right-0 h-16 bg-white shadow-sm z-10 flex items-center">
+        <div className="fixed top-0 left-0 right-0 h-16 bg-black/80 backdrop-blur-lg border-b border-white/10 z-10 flex items-center">
           <Link to="/dashboard" className="w-64 flex-shrink-0 px-6">
-            <Logo />
+            <motion.div 
+              className="flex items-center"
+              whileHover={{ scale: 1.05 }}
+            >
+              <img
+                src="/favicon.svg"
+                alt="SubtleAI Logo"
+                className="w-8 h-8 mr-2"
+              />
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                SubtleAI
+              </span>
+            </motion.div>
           </Link>
 
           <div className="flex-1 flex items-center justify-end px-6 space-x-6">
             {/* Usage Section */}
             {userDetails && (
-              <div className="flex items-center px-6 py-2.5 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
+              <div className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 backdrop-blur-xl rounded-lg border border-blue-500/20 hover:border-blue-500/30 transition-colors">
                 {/* Minutes Usage */}
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2.5">
-                    <Timer className="w-5 h-5 text-gray-500" />
-                    <span className="text-base font-semibold text-gray-900">
+                    <div className="p-1.5 rounded-lg bg-blue-500/20">
+                      <Timer className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <span className="text-base font-semibold bg-gradient-to-r from-blue-100 to-purple-100 bg-clip-text text-transparent">
                       {userDetails.minutes_consumed.toFixed(1)} min used
                     </span>
                   </div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <div className="w-40 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="w-40 h-2 bg-white/10 rounded-full overflow-hidden">
                       <div 
-                        className={`h-full rounded-full transition-all duration-300 ${getUsageColor()}`}
+                        className="h-full rounded-full transition-all duration-300 bg-gradient-to-r from-blue-500 to-purple-500"
                         style={{ width: `${getUsagePercentage()}%` }}
                       />
                     </div>
-                    <span className="text-sm font-medium text-gray-600">
+                    <span className="text-sm font-medium text-blue-200/80">
                       {userDetails.free_minutes_allocation - userDetails.minutes_consumed > 0 
                         ? `${(userDetails.free_minutes_allocation - userDetails.minutes_consumed).toFixed(1)} min left`
                         : 'Quota exceeded'}
@@ -89,8 +104,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-base font-semibold text-blue-600">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 hover:border-blue-500/30 transition-colors flex items-center justify-center">
+                    <span className="text-base font-semibold bg-gradient-to-r from-blue-100 to-purple-100 bg-clip-text text-transparent">
                       {user?.email ? getUserInitials(user.email) : 'U'}
                     </span>
                   </div>
@@ -104,77 +119,103 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Left Sidebar */}
-        <div className="w-64 bg-white shadow-lg fixed left-0 top-16 bottom-0 border-r border-gray-100 flex flex-col">
+        <div className="w-64 bg-black/80 backdrop-blur-lg shadow-lg fixed left-0 top-16 bottom-0 border-r border-white/10 flex flex-col">
           {/* Navigation Links */}
           <nav className="flex-1 mt-6 px-3 space-y-1">
             <NavLink
               to="/dashboard"
               end
-              className={({ isActive }) =>
-                `flex items-center px-4 py-3 rounded-lg transition-colors ${
+              className={({ isActive }: { isActive: boolean }) =>
+                `flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${
                   isActive 
-                    ? 'bg-blue-50 text-blue-600' 
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 text-white border border-blue-500/20' 
+                    : 'text-gray-400 hover:bg-gradient-to-r hover:from-blue-500/10 hover:via-purple-500/10 hover:to-blue-500/10 hover:text-white hover:border hover:border-blue-500/20'
                 }`
               }
             >
-              <Video className="w-5 h-5 mr-3" />
-              <span className="font-medium">Videos</span>
+              {({ isActive }: { isActive: boolean }) => (
+                <>
+                  <div className={`p-1.5 rounded-lg ${isActive ? 'bg-blue-500/20' : 'bg-white/5'} mr-3`}>
+                    <Video className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
+                  </div>
+                  <span className="font-medium">Videos</span>
+                </>
+              )}
             </NavLink>
 
             <NavLink
               to="/dashboard/subtitles"
-              className={({ isActive }) =>
-                `flex items-center px-4 py-3 rounded-lg transition-colors ${
+              className={({ isActive }: { isActive: boolean }) =>
+                `flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${
                   isActive 
-                    ? 'bg-blue-50 text-blue-600' 
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 text-white border border-blue-500/20' 
+                    : 'text-gray-400 hover:bg-gradient-to-r hover:from-blue-500/10 hover:via-purple-500/10 hover:to-blue-500/10 hover:text-white hover:border hover:border-blue-500/20'
                 }`
               }
             >
-              <Subtitles className="w-5 h-5 mr-3" />
-              <span className="font-medium">Subtitles</span>
+              {({ isActive }: { isActive: boolean }) => (
+                <>
+                  <div className={`p-1.5 rounded-lg ${isActive ? 'bg-blue-500/20' : 'bg-white/5'} mr-3`}>
+                    <Subtitles className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
+                  </div>
+                  <span className="font-medium">Subtitles</span>
+                </>
+              )}
             </NavLink>
 
-            <div className="pt-4 mt-4 border-t border-gray-100">
+            <div className="pt-4 mt-4 border-t border-white/10">
               <NavLink
                 to="/dashboard/billing"
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-3 rounded-lg transition-colors ${
+                className={({ isActive }: { isActive: boolean }) =>
+                  `flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive 
-                      ? 'bg-blue-50 text-blue-600' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 text-white border border-blue-500/20' 
+                      : 'text-gray-400 hover:bg-gradient-to-r hover:from-blue-500/10 hover:via-purple-500/10 hover:to-blue-500/10 hover:text-white hover:border hover:border-blue-500/20'
                   }`
                 }
               >
-                <CreditCard className="w-5 h-5 mr-3" />
-                <span className="font-medium">Billing & Usage</span>
+                {({ isActive }: { isActive: boolean }) => (
+                  <>
+                    <div className={`p-1.5 rounded-lg ${isActive ? 'bg-blue-500/20' : 'bg-white/5'} mr-3`}>
+                      <CreditCard className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
+                    </div>
+                    <span className="font-medium">Billing & Usage</span>
+                  </>
+                )}
               </NavLink>
 
               <NavLink
                 to="/dashboard/settings"
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-3 rounded-lg transition-colors ${
+                className={({ isActive }: { isActive: boolean }) =>
+                  `flex items-center px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive 
-                      ? 'bg-blue-50 text-blue-600' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 text-white border border-blue-500/20' 
+                      : 'text-gray-400 hover:bg-gradient-to-r hover:from-blue-500/10 hover:via-purple-500/10 hover:to-blue-500/10 hover:text-white hover:border hover:border-blue-500/20'
                   }`
                 }
               >
-                <Settings className="w-5 h-5 mr-3" />
-                <span className="font-medium">Settings</span>
+                {({ isActive }: { isActive: boolean }) => (
+                  <>
+                    <div className={`p-1.5 rounded-lg ${isActive ? 'bg-blue-500/20' : 'bg-white/5'} mr-3`}>
+                      <Settings className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-gray-400'}`} />
+                    </div>
+                    <span className="font-medium">Settings</span>
+                  </>
+                )}
               </NavLink>
             </div>
           </nav>
 
           {/* Sign Out Button at Bottom */}
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-4 border-t border-white/10">
             <Button 
               variant="outline" 
-              className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              className="w-full justify-start text-blue-300 hover:text-blue-200 bg-blue-500/5 border-blue-500/30 hover:border-blue-400/50 hover:bg-blue-500/10 transition-all duration-200 group"
               onClick={handleLogout}
             >
-              <LogOut className="w-5 h-5 mr-3" />
+              <div className="p-1.5 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors mr-2">
+                <LogOut className="w-4 h-4 text-blue-300 group-hover:text-blue-200 transition-colors" />
+              </div>
               <span className="font-medium">Sign out</span>
             </Button>
           </div>

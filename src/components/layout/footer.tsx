@@ -38,7 +38,7 @@ export function Footer() {
               <p className="text-gray-300 font-medium">Legal</p>
               <div className="flex flex-col space-y-4">
                 <Link 
-                  to="/privacy" 
+                  to="/privacy-policy" 
                   className="text-gray-400 hover:text-blue-400 transition-colors text-sm w-fit group flex items-center"
                 >
                   <span className="relative">
@@ -47,7 +47,7 @@ export function Footer() {
                   </span>
                 </Link>
                 <Link 
-                  to="/terms" 
+                  to="/terms-of-service" 
                   className="text-gray-400 hover:text-purple-400 transition-colors text-sm w-fit group flex items-center"
                 >
                   <span className="relative">
