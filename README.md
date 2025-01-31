@@ -1,14 +1,15 @@
-# Video Analyzer
+# SubtleAI
 
 A modern web application for generating AI-powered subtitles for your videos. Built with React, TypeScript, and Tailwind CSS.
 
 ## Features
 
 - 🎥 Easy video upload and management
-- 🤖 AI-powered subtitle generation
-- 📝 Download subtitles in SRT format
-- 🌐 Modern, responsive UI
+- 🤖 AI-powered subtitle generation in multiple languages
+- 📝 Download subtitles in SRT/VTT formats
+- 🌐 Modern, responsive UI with real-time preview
 - 🔒 Secure user authentication
+- 📊 Usage analytics and billing management
 
 ## Getting Started
 
@@ -16,14 +17,14 @@ A modern web application for generating AI-powered subtitles for your videos. Bu
 
 - Node.js 16 or later
 - npm 7 or later
-- Backend API running (see [Video Analyzer API](https://github.com/your-org/video-analyzer-api))
+- Backend API running (see [SubtleAI API](https://github.com/coeus-solutions/api-subtle-ai))
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-org/video-analyzer.git
-cd video-analyzer
+git clone https://github.com/coeus-solutions/subtle-ai
+cd subtleai
 ```
 
 2. Install dependencies:
