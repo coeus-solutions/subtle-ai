@@ -1,43 +1,52 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Subtitles } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/lib/auth-context';
 
 export function Header() {
-  const { user, logout } = useAuth();
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   return (
-    <header className="border-b bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Subtitles className="h-5 w-5 text-white" />
-          </div>
-          <span className="font-bold text-xl bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-            SubtleAI
-          </span>
+    <motion.header 
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      className="fixed w-full z-50 bg-black/80 backdrop-blur-lg border-b border-white/10"
+    >
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <Link to="/">
+          <motion.div 
+            className="flex items-center"
+            whileHover={{ scale: 1.05 }}
+          >
+            <img
+              src="/favicon.svg"
+              alt="SubtleAI Logo"
+              className="w-8 h-8 mr-2"
+            />
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+              SubtleAI
+            </span>
+          </motion.div>
         </Link>
-        
-        <nav className="hidden md:flex items-center space-x-4">
-          {user ? (
-            <>
-              <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
-              <Button variant="outline" onClick={logout}>Logout</Button>
-            </>
-          ) : (
-            <>
-              <Link to="/pricing" className="text-gray-600 hover:text-gray-900">Pricing</Link>
-              <Link to="/login">
-                <Button variant="outline">Login</Button>
-              </Link>
-              <Link to="/register">
-                <Button>Try for Free</Button>
-              </Link>
-            </>
-          )}
-        </nav>
-      </div>
-    </header>
+
+        {!isAuthPage && (
+          <div className="flex items-center gap-4">
+            <Link to="/login">
+              <Button variant="outline" className="border-white/20 hover:border-white/40 hover:bg-white/5 text-gray-100 hover:text-white transition-colors font-medium bg-white/5">
+                Sign in
+              </Button>
+            </Link>
+            <Link to="/register">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500">
+                  Get Started
+                </Button>
+              </motion.div>
+            </Link>
+          </div>
+        )}
+      </nav>
+    </motion.header>
   );
 }

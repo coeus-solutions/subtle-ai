@@ -1,75 +1,74 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Video, Mail, Phone, MapPin } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:py-16 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-          {/* Company Info */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Video className="h-6 w-6 text-blue-500" />
-              <span className="text-xl font-bold text-white">VideoAnalyzer</span>
+    <footer className="relative bg-black">
+      {/* Background gradient effect */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-950/10 to-black/50 pointer-events-none" />
+      
+      <div className="relative border-t border-white/10">
+        <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-16">
+            {/* Company Info & Description - 6 columns */}
+            <div className="md:col-span-6 space-y-8">
+              <div>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  className="flex items-center mb-6"
+                >
+                  <img
+                    src="/favicon.svg"
+                    alt="SubtleAI Logo"
+                    className="w-8 h-8 mr-2"
+                  />
+                  <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    SubtleAI
+                  </span>
+                </motion.div>
+                <p className="text-gray-400 text-sm leading-relaxed max-w-md">
+                  Transform your videos with AI-powered subtitles. Fast, accurate, and multilingual subtitle generation for content creators worldwide. Experience professional-grade results with our cutting-edge technology.
+                </p>
+              </div>
             </div>
-            <p className="text-sm">
-              Advanced video analysis and subtitle generation tool powered by AI technology.
-            </p>
-          </div>
 
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-2">
-              {['About', 'Features', 'Pricing', 'Blog'].map((item) => (
-                <li key={item}>
-                  <Link to={`/${item.toLowerCase()}`} className="text-sm hover:text-white transition-colors">
-                    {item}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+            {/* Legal Links - 3 columns */}
+            <div className="md:col-span-3 space-y-6">
+              <p className="text-gray-300 font-medium">Legal</p>
+              <div className="flex flex-col space-y-4">
+                <Link 
+                  to="/privacy-policy" 
+                  className="text-gray-400 hover:text-blue-400 transition-colors text-sm w-fit group flex items-center"
+                >
+                  <span className="relative">
+                    Privacy Policy
+                    <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-blue-400/0 via-blue-400/70 to-blue-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </span>
+                </Link>
+                <Link 
+                  to="/terms-of-service" 
+                  className="text-gray-400 hover:text-purple-400 transition-colors text-sm w-fit group flex items-center"
+                >
+                  <span className="relative">
+                    Terms of Service
+                    <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-purple-400/0 via-purple-400/70 to-purple-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </span>
+                </Link>
+              </div>
+            </div>
 
-          {/* Legal */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Legal</h3>
-            <ul className="space-y-2">
-              {['Terms of Service', 'Privacy Policy', 'Cookie Policy'].map((item) => (
-                <li key={item}>
-                  <Link to={`/${item.toLowerCase().replace(/\s+/g, '-')}`} className="text-sm hover:text-white transition-colors">
-                    {item}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            {/* Contact Information - 3 columns */}
+            <div className="md:col-span-3 space-y-6">
+              <p className="text-gray-300 font-medium">Contact Us</p>
+              <div className="text-gray-400 space-y-2 text-sm backdrop-blur-xl bg-white/5 rounded-lg p-4 border border-white/10">
+                <p>1606 Headway Cir</p>
+                <p>STE 9810</p>
+                <p>Austin, TX 78754</p>
+                <p>United States</p>
+              </div>
+            </div>
           </div>
-
-          {/* Contact */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Contact Us</h3>
-            <ul className="space-y-3">
-              <li className="flex items-center space-x-3">
-                <Mail className="h-5 w-5 text-blue-500" />
-                <span className="text-sm">support@videoanalyzer.com</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <Phone className="h-5 w-5 text-blue-500" />
-                <span className="text-sm">+1 (555) 123-4567</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <MapPin className="h-5 w-5 text-blue-500" />
-                <span className="text-sm">123 Tech Street, CA 94107</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="mt-12 pt-8 border-t border-gray-800">
-          <p className="text-center text-sm">
-            © {new Date().getFullYear()} VideoAnalyzer. All rights reserved.
-          </p>
         </div>
       </div>
     </footer>

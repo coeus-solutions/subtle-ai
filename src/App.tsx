@@ -11,6 +11,10 @@ import { DashboardOverview } from '@/pages/dashboard/overview';
 import { VideosPage } from '@/pages/dashboard/videos';
 import { SubtitlesPage } from '@/pages/dashboard/subtitles';
 import { ProfilePage } from '@/pages/dashboard/profile';
+import { PrivacyPolicyPage } from '@/pages/privacy-policy';
+import { TermsOfServicePage } from '@/pages/terms-of-service';
+import { BillingPage } from '@/pages/dashboard/billing';
+import { SettingsPage } from '@/pages/dashboard/settings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -50,6 +54,20 @@ function AppRoutes() {
           <Footer />
         </>
       } />
+      <Route path="/privacy-policy" element={
+        <>
+          <Header />
+          <PrivacyPolicyPage />
+          <Footer />
+        </>
+      } />
+      <Route path="/terms-of-service" element={
+        <>
+          <Header />
+          <TermsOfServicePage />
+          <Footer />
+        </>
+      } />
       
       {/* Protected Dashboard Routes */}
       <Route path="/dashboard" element={
@@ -70,6 +88,20 @@ function AppRoutes() {
         <ProtectedRoute>
           <DashboardLayout>
             <SubtitlesPage />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/billing" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <BillingPage />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/settings" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <SettingsPage />
           </DashboardLayout>
         </ProtectedRoute>
       } />

@@ -6,6 +6,14 @@ if (!API_BASE_URL) {
   throw new Error('VIDEO_ANALYZER_API_URL environment variable is not set');
 }
 
+export const SUPPORTED_LANGUAGES = {
+  'en': 'English',
+  'es': 'Spanish',
+  'fr': 'French',
+  'de': 'German',
+  'ja': 'Japanese'
+} as const;
+
 // Auth Types
 export interface RegisterData {
   email: string;
@@ -29,9 +37,14 @@ export interface RegisterResponse {
 export interface Video {
   uuid: string;
   video_url: string;
-  status: string | null;
-  created_at: string | null;
-  updated_at: string | null;
+  original_name: string | null;
+  duration_minutes: number;
+  status: 'uploading' | 'processing' | 'completed' | 'failed';
+  created_at: string;
+  updated_at: string;
+  has_subtitles: boolean;
+  subtitle_languages: string[];
+  subtitles: Subtitle[];
 }
 
 export interface VideoListResponse {
@@ -39,6 +52,11 @@ export interface VideoListResponse {
   count: number;
   videos: Video[];
   detail?: string;
+}
+
+export interface VideoUploadRequest {
+  file: File;
+  language: string;
 }
 
 export interface VideoUploadResponse {
@@ -59,10 +77,12 @@ export interface VideoDeleteResponse {
 export interface Subtitle {
   uuid: string;
   video_uuid: string;
+  video_original_name: string | null;
   subtitle_url: string;
-  format: string | null;
-  created_at: string | null;
-  updated_at: string | null;
+  format: string;
+  language: keyof typeof SUPPORTED_LANGUAGES;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SubtitleListResponse {
@@ -76,8 +96,24 @@ export interface SubtitleGenerationResponse {
   video_uuid: string;
   subtitle_uuid: string;
   subtitle_url: string;
-  status: string | null;
-  detail?: string;
+  language: string;
+  status: 'uploading' | 'processing' | 'completed' | 'failed';
+  duration_minutes: number;
+  processing_cost: number;
+  detail: string;
+}
+
+// User Types
+export interface UserDetails {
+  email: string;
+  minutes_consumed: number;
+  free_minutes_used: number;
+  total_cost: number;
+  minutes_remaining: number;
+  cost_per_minute: number;
+  free_minutes_allocation: number;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 const apiClient = axios.create({
@@ -121,14 +157,17 @@ export const auth = {
 };
 
 export const videos = {
-  async list(): Promise<VideoListResponse> {
-    const response = await apiClient.get('/videos/');
+  async list(include_subtitles: boolean = true): Promise<VideoListResponse> {
+    const response = await apiClient.get('/videos/', {
+      params: { include_subtitles }
+    });
     return response.data;
   },
 
-  async upload(file: File): Promise<VideoUploadResponse> {
+  async upload({ file, language }: VideoUploadRequest): Promise<VideoUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('language', language);
 
     const response = await apiClient.post('/videos/upload', formData, {
       headers: {
@@ -143,8 +182,10 @@ export const videos = {
     return response.data;
   },
 
-  async generateSubtitles(videoUuid: string): Promise<SubtitleGenerationResponse> {
-    const response = await apiClient.post(`/videos/${videoUuid}/generate_subtitles`);
+  async generateSubtitles(videoUuid: string, language: string = 'en'): Promise<SubtitleGenerationResponse> {
+    const response = await apiClient.post(`/videos/${videoUuid}/generate_subtitles`, {
+      language
+    });
     return response.data;
   },
 };
@@ -161,6 +202,13 @@ export const subtitles = {
     });
     return response.data;
   },
+};
+
+export const users = {
+  async me(): Promise<UserDetails> {
+    const response = await apiClient.get('/users/me');
+    return response.data;
+  }
 };
 
 export default apiClient; 
