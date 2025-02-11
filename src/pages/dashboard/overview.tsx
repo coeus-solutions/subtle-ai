@@ -50,7 +50,8 @@ const SUPPORTED_LANGUAGES = [
   { code: 'es', name: 'Spanish' },
   { code: 'fr', name: 'French' },
   { code: 'de', name: 'German' },
-  { code: 'ja', name: 'Japanese' }
+  { code: 'ja', name: 'Japanese' },
+  { code: 'ru', name: 'Russian'}
 ];
 
 function VideoCard({ video, onDelete, vttUrls }: { 
