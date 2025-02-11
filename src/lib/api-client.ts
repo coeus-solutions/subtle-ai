@@ -11,7 +11,8 @@ export const SUPPORTED_LANGUAGES = {
   'es': 'Spanish',
   'fr': 'French',
   'de': 'German',
-  'ja': 'Japanese'
+  'ja': 'Japanese',
+  'ru': 'Russian'
 } as const;
 
 // Auth Types
