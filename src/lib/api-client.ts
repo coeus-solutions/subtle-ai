@@ -46,6 +46,9 @@ export interface Video {
   has_subtitles: boolean;
   subtitle_languages: string[];
   subtitles: Subtitle[];
+  dubbed_video_url: string | null;
+  dubbing_id: string | null;
+  is_dubbed_audio: boolean;
 }
 
 export interface VideoListResponse {
@@ -95,13 +98,39 @@ export interface SubtitleListResponse {
 export interface SubtitleGenerationResponse {
   message: string;
   video_uuid: string;
-  subtitle_uuid: string;
-  subtitle_url: string;
+  subtitle_uuid: string | null;
+  subtitle_url: string | null;
+  dubbing_id: string | null;
+  dubbed_video_url: string | null;
   language: string;
-  status: 'uploading' | 'processing' | 'completed' | 'failed';
-  duration_minutes: number;
-  processing_cost: number;
-  detail: string;
+  status: string;
+  duration_minutes: number | null;
+  processing_cost: number | null;
+  detail: string | null;
+  expected_duration_sec: number | null;
+}
+
+export interface DubbingStatusResponse {
+  message: string;
+  video_uuid: string;
+  dubbing_id: string;
+  language: string;
+  status: string;
+  duration_minutes: number | null;
+  detail: string | null;
+  expected_duration_sec: number | null;
+}
+
+export interface DubbingResponse {
+  message: string;
+  video_uuid: string;
+  dubbing_id: string;
+  dubbed_video_url: string;
+  language: string;
+  status: string;
+  duration_minutes: number | null;
+  processing_cost: number | null;
+  detail: string | null;
 }
 
 // User Types
@@ -183,10 +212,45 @@ export const videos = {
     return response.data;
   },
 
-  async generateSubtitles(videoUuid: string, language: string = 'en'): Promise<SubtitleGenerationResponse> {
-    const response = await apiClient.post(`/videos/${videoUuid}/generate_subtitles`, {
-      language
-    });
+  async generateSubtitles(
+    videoUuid: string,
+    language: string,
+    options?: { enable_dubbing?: boolean }
+  ): Promise<SubtitleGenerationResponse> {
+    const response = await apiClient.post(
+      `/videos/${videoUuid}/generate_subtitles`,
+      { enable_dubbing: options?.enable_dubbing || false }
+    );
+    return response.data;
+  },
+
+  async checkDubbingStatus(
+    videoUuid: string,
+    dubbingId: string
+  ): Promise<DubbingStatusResponse> {
+    const response = await apiClient.get(
+      `/videos/${videoUuid}/dubbing/${dubbingId}/status`
+    );
+    return response.data;
+  },
+
+  async getDubbedVideo(
+    videoUuid: string,
+    dubbingId: string
+  ): Promise<DubbingResponse> {
+    const response = await apiClient.get(
+      `/videos/${videoUuid}/dubbing/${dubbingId}/video`
+    );
+    return response.data;
+  },
+
+  async getTranscriptForDub(
+    videoUuid: string,
+    dubbingId: string
+  ): Promise<SubtitleGenerationResponse> {
+    const response = await apiClient.get(
+      `/videos/${videoUuid}/get-transcript-for-dub/${dubbingId}`
+    );
     return response.data;
   },
 };

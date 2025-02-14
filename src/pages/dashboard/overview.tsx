@@ -15,7 +15,8 @@ import {
   ArrowRight,
   Timer,
   DollarSign,
-  X
+  X,
+  Subtitles
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { videos, subtitles, users } from '@/lib/api-client';
@@ -44,6 +45,7 @@ import {
 import { convertSrtToVtt } from '@/lib/subtitle-utils';
 import toast from 'react-hot-toast';
 import { useUserDetails } from '@/hooks/use-user-details';
+import { cn } from '@/lib/utils';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English' },
@@ -60,6 +62,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
   vttUrls: Record<string, string>;
 }) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDubbedDownloading, setIsDubbedDownloading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -139,6 +142,32 @@ function VideoCard({ video, onDelete, vttUrls }: {
       console.error('Download failed:', error);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDubbedDownload = async () => {
+    if (!video.dubbed_video_url) return;
+    
+    try {
+      setIsDubbedDownloading(true);
+      const response = await fetch(video.dubbed_video_url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const fileName = video.original_name 
+        ? `${video.original_name.split('.')[0]}_dubbed_${video.subtitle_languages[0]}.mp4`
+        : `dubbed_video_${video.uuid}_${video.subtitle_languages[0]}.mp4`;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Dubbed video download failed:', error);
+      toast.error('Failed to download dubbed video. Please try again.');
+    } finally {
+      setIsDubbedDownloading(false);
     }
   };
 
@@ -326,34 +355,69 @@ function VideoCard({ video, onDelete, vttUrls }: {
         {/* Actions Section */}
         <div className="flex flex-wrap items-center gap-2 border-t pt-3">
           {video.status === 'completed' && video.has_subtitles && (
-            video.subtitles.map((subtitle) => (
-              <TooltipProvider key={subtitle.uuid}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownload(subtitle)}
-                      disabled={isDownloading}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 border-0 shadow-lg transition-all duration-200"
-                    >
-                      {isDownloading ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-3.5 h-3.5 mr-2" />
-                          {SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name || subtitle.language.toUpperCase()}
-                        </>
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Download {SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name} subtitles</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))
+            <div className="w-full grid grid-cols-1 gap-2">
+              {video.subtitles.map((subtitle) => (
+                <TooltipProvider key={subtitle.uuid}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(subtitle)}
+                        disabled={isDownloading}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
+                      >
+                        {isDownloading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Downloading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4" />
+                            <span>{SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name} Subtitles</span>
+                          </>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-gray-900 text-gray-100 border border-gray-700">
+                      <p>Download {SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name} subtitles</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
+              
+              {video.dubbed_video_url && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDubbedDownload}
+                        disabled={isDubbedDownloading}
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
+                      >
+                        {isDubbedDownloading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Downloading Dubbed Video...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4" />
+                            <span>Dubbed Video ({SUPPORTED_LANGUAGES.find(l => l.code === video.subtitle_languages[0])?.name})</span>
+                          </>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-gray-900 text-gray-100 border border-gray-700">
+                      <p>Download dubbed video in {SUPPORTED_LANGUAGES.find(l => l.code === video.subtitle_languages[0])?.name}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
           )}
 
           {video.status === 'failed' && (
@@ -361,26 +425,28 @@ function VideoCard({ video, onDelete, vttUrls }: {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="secondary" 
+                    variant="outline" 
                     size="sm"
                     onClick={handleGenerateSubtitles}
                     disabled={isGenerating}
-                    className="flex-1"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white border-0 shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
                   >
                     {isGenerating ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-                        Retrying...
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Retrying...</span>
                       </>
                     ) : (
                       <>
-                        <RefreshCw className="w-3.5 h-3.5 mr-2" />
-                        Retry Generation
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Retry Generation</span>
                       </>
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Retry subtitle generation</TooltipContent>
+                <TooltipContent side="top" className="bg-gray-900 text-gray-100 border border-gray-700">
+                  <p>Retry subtitle generation</p>
+                </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
@@ -425,6 +491,8 @@ export function DashboardOverview() {
   const [vttUrlsMap, setVttUrlsMap] = useState<Record<string, Record<string, string>>>({});
   const { fetchUserDetails } = useUserDetails();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [enableDubbing, setEnableDubbing] = useState(false);
+  const [showLanguageTooltip, setShowLanguageTooltip] = useState(false);
 
   // Function to convert subtitles for a video
   const convertSubtitlesForVideo = async (video: Video) => {
@@ -635,39 +703,111 @@ export function DashboardOverview() {
           // Generate subtitles
           const generationResponse = await videos.generateSubtitles(
             uploadResponse.video_uuid,
-            selectedLanguage
+            selectedLanguage,
+            { enable_dubbing: enableDubbing }
           );
 
-          // Update video in list with subtitle info
-          const updatedVideo = {
-            ...newVideo,
-            status: generationResponse.status as Video['status'],
-            duration_minutes: generationResponse.duration_minutes || 0,
-            has_subtitles: true,
-            subtitle_languages: [generationResponse.language],
-            subtitles: [{
-              uuid: generationResponse.subtitle_uuid,
-              language: generationResponse.language as "en" | "es" | "fr" | "de" | "ja",
-              subtitle_url: generationResponse.subtitle_url,
-              created_at: new Date().toISOString(),
-              video_uuid: uploadResponse.video_uuid,
-              video_original_name: selectedFile.name,
-              format: 'srt',
-              updated_at: new Date().toISOString()
-            }]
-          };
+          if (enableDubbing && generationResponse.dubbing_id) {
+            // Start polling for dubbing status
+            const pollDubbingStatus = async () => {
+              try {
+                const statusResponse = await videos.checkDubbingStatus(
+                  uploadResponse.video_uuid,
+                  generationResponse.dubbing_id
+                );
 
-          setVideoList(prev => prev.map(v => 
-            v.uuid === uploadResponse.video_uuid ? updatedVideo : v
-          ));
+                if (statusResponse.status === 'dubbed') {
+                  // Get the dubbed video URL
+                  const dubbedResponse = await videos.getDubbedVideo(
+                    uploadResponse.video_uuid,
+                    generationResponse.dubbing_id
+                  );
 
-          // Convert and enable subtitles immediately
-          await convertSubtitlesForVideo(updatedVideo);
+                  // Get the transcript for dubbed video
+                  const transcriptResponse = await videos.getTranscriptForDub(
+                    uploadResponse.video_uuid,
+                    generationResponse.dubbing_id
+                  );
+
+                  // Update video in list with dubbed info
+                  const updatedVideo = {
+                    ...newVideo,
+                    status: 'completed',
+                    duration_minutes: dubbedResponse.duration_minutes || 0,
+                    has_subtitles: true,
+                    subtitle_languages: [transcriptResponse.language],
+                    subtitles: [{
+                      uuid: transcriptResponse.subtitle_uuid,
+                      language: transcriptResponse.language,
+                      subtitle_url: transcriptResponse.subtitle_url,
+                      created_at: new Date().toISOString(),
+                      video_uuid: uploadResponse.video_uuid,
+                      video_original_name: selectedFile.name,
+                      format: 'srt',
+                      updated_at: new Date().toISOString()
+                    }],
+                    dubbed_video_url: dubbedResponse.dubbed_video_url,
+                    dubbing_id: dubbedResponse.dubbing_id,
+                    is_dubbed_audio: true
+                  };
+
+                  setVideoList(prev => prev.map(v => 
+                    v.uuid === uploadResponse.video_uuid ? updatedVideo : v
+                  ));
+
+                  // Convert and enable subtitles
+                  await convertSubtitlesForVideo(updatedVideo);
+                  return;
+                }
+
+                if (statusResponse.status === 'failed') {
+                  throw new Error('Dubbing failed. Please try again.');
+                }
+
+                // Continue polling if still processing
+                setTimeout(pollDubbingStatus, 5000);
+              } catch (error) {
+                console.error('Error polling dubbing status:', error);
+                throw error;
+              }
+            };
+
+            // Start polling
+            pollDubbingStatus();
+          } else {
+            // Update video in list with subtitle info (non-dubbing case)
+            const updatedVideo = {
+              ...newVideo,
+              status: generationResponse.status as Video['status'],
+              duration_minutes: generationResponse.duration_minutes || 0,
+              has_subtitles: true,
+              subtitle_languages: [generationResponse.language],
+              subtitles: [{
+                uuid: generationResponse.subtitle_uuid,
+                language: generationResponse.language as "en" | "es" | "fr" | "de" | "ja" | "ru",
+                subtitle_url: generationResponse.subtitle_url,
+                created_at: new Date().toISOString(),
+                video_uuid: uploadResponse.video_uuid,
+                video_original_name: selectedFile.name,
+                format: 'srt',
+                updated_at: new Date().toISOString()
+              }]
+            };
+
+            setVideoList(prev => prev.map(v => 
+              v.uuid === uploadResponse.video_uuid ? updatedVideo : v
+            ));
+
+            // Convert and enable subtitles
+            await convertSubtitlesForVideo(updatedVideo);
+          }
 
           // Refresh user details to update minutes
           await fetchUserDetails();
 
-          return "Video uploaded and subtitles generated successfully!";
+          return enableDubbing 
+            ? "Video uploaded. Dubbing and subtitle generation in progress..."
+            : "Video uploaded and subtitles generated successfully!";
         } catch (err: any) {
           // Update video status to failed
           setVideoList(prev => prev.map(v => {
@@ -819,8 +959,8 @@ export function DashboardOverview() {
         <DialogContent className="sm:max-w-[425px] z-[100] bg-white">
           <DialogHeader>
             <DialogTitle>Upload Video</DialogTitle>
-            <DialogDescription className="space-y-2">
-              <p>Select a video file and choose the language for subtitle generation</p>
+            <DialogDescription className="space-y-2 mt-6">
+              <p>Select a video file to generate subtitles and optional AI dubbing</p>
               <div className="mt-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
                 <div className="font-medium mb-1">File requirements:</div>
                 <ul className="list-disc list-inside space-y-1 text-blue-600">
@@ -831,7 +971,7 @@ export function DashboardOverview() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-6 py-4">
             {error && (
               <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200">
                 {error}
@@ -847,7 +987,7 @@ export function DashboardOverview() {
               disabled={isUploading}
             />
             
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-6">
               {selectedFile && (
                 <div className="flex flex-col">
                   <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
@@ -897,12 +1037,32 @@ export function DashboardOverview() {
                     Target Language for Subtitles
                   </label>
                   <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-4 h-4 text-gray-400" />
+                    <Tooltip 
+                      open={showLanguageTooltip}
+                      onOpenChange={setShowLanguageTooltip}
+                      delayDuration={0}
+                    >
+                      <TooltipTrigger asChild>
+                        <button 
+                          type="button"
+                          className="focus:outline-none"
+                          onMouseEnter={() => setShowLanguageTooltip(true)}
+                          onMouseLeave={() => setShowLanguageTooltip(false)}
+                        >
+                          <Info className="w-4 h-4 text-gray-400 hover:text-gray-500 transition-colors" />
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-sm">Subtitles will be generated in this language</p>
+                      <TooltipContent 
+                        side="top" 
+                        className="max-w-xs bg-gray-900 text-gray-100 border border-gray-700"
+                        sideOffset={5}
+                      >
+                        <div className="space-y-2">
+                          <p className="font-medium">Target Language</p>
+                          <p className="text-sm text-gray-200">
+                            Subtitles will be generated in this language. Choose the language that best suits your audience.
+                          </p>
+                        </div>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -927,6 +1087,90 @@ export function DashboardOverview() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Enhanced Dubbing Toggle */}
+              <div className={cn(
+                "p-4 rounded-lg border transition-colors duration-200",
+                enableDubbing 
+                  ? "bg-blue-50/50 border-blue-200 shadow-sm" 
+                  : "bg-gray-50 border-gray-200"
+              )}>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className={cn(
+                      "mt-1 p-2 rounded-lg transition-colors duration-200",
+                      enableDubbing ? "bg-blue-100" : "bg-gray-100"
+                    )}>
+                      <Subtitles className={cn(
+                        "w-5 h-5 transition-colors duration-200",
+                        enableDubbing ? "text-blue-600" : "text-gray-600"
+                      )} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "text-sm font-medium transition-colors duration-200",
+                          enableDubbing ? "text-blue-900" : "text-gray-700"
+                        )}>
+                          Audio Dubbing
+                        </span>
+                        <TooltipProvider>
+                          <Tooltip delayDuration={0}>
+                            <TooltipTrigger>
+                              <Info className={cn(
+                                "w-4 h-4 transition-colors duration-200",
+                                enableDubbing ? "text-blue-400" : "text-gray-400"
+                              )} />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs bg-gray-900 text-gray-100 border border-gray-700">
+                              <div className="space-y-2">
+                                <p className="font-medium">Audio Dubbing Feature</p>
+                                <p className="text-sm text-gray-200">
+                                  When enabled, we'll use advanced AI to dub your video in the target language. 
+                                  The dubbed version will maintain natural voice qualities while matching lip movements.
+                                </p>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <span className="text-xs text-gray-500 mt-0.5">
+                        AI will dub your video in the target language
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enableDubbing}
+                    onClick={() => setEnableDubbing(!enableDubbing)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                      enableDubbing ? "bg-blue-600" : "bg-gray-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                        enableDubbing ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* Additional Info when dubbing is enabled */}
+                {enableDubbing && (
+                  <div className="mt-3 pt-3 border-t border-blue-200">
+                    <div className="flex items-start gap-2 text-xs text-blue-700">
+                      <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <p>
+                        The dubbing process may take a few minutes. You'll be able to preview and download 
+                        both the original and dubbed versions once complete.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Button
