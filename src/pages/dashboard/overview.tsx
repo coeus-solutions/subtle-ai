@@ -65,6 +65,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
   const [isOriginalDownloading, setIsOriginalDownloading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDubbedVersion, setShowDubbedVersion] = useState(video.is_dubbed_audio);
 
   const formatDuration = (minutes: number): string => {
     const totalSeconds = Math.floor(minutes * 60);
@@ -260,7 +261,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
         {(video.video_url || video.dubbed_video_url) && (
           <>
             <video
-              src={video.dubbed_video_url && video.is_dubbed_audio ? video.dubbed_video_url : video.video_url}
+              src={showDubbedVersion && video.dubbed_video_url ? video.dubbed_video_url : video.video_url}
               className="w-full h-full object-cover"
               controls
               crossOrigin="anonymous"
@@ -301,6 +302,32 @@ function VideoCard({ video, onDelete, vttUrls }: {
               </div>
             )}
           </>
+        )}
+        {/* Video Source Switch */}
+        {video.dubbed_video_url && video.status === 'completed' && (
+          <div className="absolute top-2 left-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setShowDubbedVersion(!showDubbedVersion)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-colors duration-200 flex items-center gap-2",
+                      showDubbedVersion
+                        ? "bg-purple-500/90 text-white hover:bg-purple-600/90"
+                        : "bg-blue-500/90 text-white hover:bg-blue-600/90"
+                    )}
+                  >
+                    <Globe className="w-3 h-3" />
+                    {showDubbedVersion ? 'Dubbed' : 'Original'}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-gray-900 text-gray-100 border border-gray-700">
+                  <p>Switch to {showDubbedVersion ? 'original' : 'dubbed'} version</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         )}
         <div className="absolute top-2 right-2 flex gap-2">
           <span className={`text-xs font-medium px-2.5 py-1 rounded-full border backdrop-blur-sm ${getStatusBadgeStyle()}`}>
@@ -353,6 +380,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
         <div className="flex flex-wrap items-center gap-2 border-t pt-3">
           {video.status === 'completed' && video.has_subtitles && (
             <div className="w-full grid grid-cols-1 gap-2">
+              {/* Subtitle Download Button */}
               {video.subtitles.map((subtitle) => (
                 <TooltipProvider key={subtitle.uuid}>
                   <Tooltip>
@@ -384,37 +412,43 @@ function VideoCard({ video, onDelete, vttUrls }: {
                 </TooltipProvider>
               ))}
               
-              {video.dubbed_video_url && (
-                <>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDownload(video.video_url, 'original')}
-                          disabled={isOriginalDownloading}
-                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
-                        >
-                          {isOriginalDownloading ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              <span>Downloading Original Video...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Download className="w-4 h-4" />
-                              <span>Original Video</span>
-                            </>
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-gray-900 text-gray-100 border border-gray-700">
-                        <p>Download original video</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </>
+              {/* Video Download Button - Only show if video is dubbed */}
+              {video.dubbed_video_url ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(showDubbedVersion ? video.dubbed_video_url! : video.video_url, 'original')}
+                        disabled={isOriginalDownloading}
+                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
+                      >
+                        {isOriginalDownloading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Downloading Video...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4" />
+                            <span>{showDubbedVersion ? 'Dubbed' : 'Original'} Video</span>
+                          </>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-gray-900 text-gray-100 border border-gray-700">
+                      <p>Download {showDubbedVersion ? 'dubbed' : 'original'} video</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <div className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Info className="w-4 h-4" />
+                    <p>Use the video player's download button to save this video</p>
+                  </div>
+                </div>
               )}
             </div>
           )}
