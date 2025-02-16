@@ -67,6 +67,13 @@ function VideoCard({ video, onDelete, vttUrls }: {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDubbedVersion, setShowDubbedVersion] = useState(video.is_dubbed_audio);
 
+  // Update showDubbedVersion when video.is_dubbed_audio changes
+  useEffect(() => {
+    if (video.is_dubbed_audio) {
+      setShowDubbedVersion(true);
+    }
+  }, [video.is_dubbed_audio]);
+
   const formatDuration = (minutes: number): string => {
     const totalSeconds = Math.floor(minutes * 60);
     const minutes_ = Math.floor(totalSeconds / 60);
@@ -261,6 +268,7 @@ function VideoCard({ video, onDelete, vttUrls }: {
         {(video.video_url || video.dubbed_video_url) && (
           <>
             <video
+              key={showDubbedVersion ? video.dubbed_video_url : video.video_url}
               src={showDubbedVersion && video.dubbed_video_url ? video.dubbed_video_url : video.video_url}
               className="w-full h-full object-cover"
               controls
@@ -767,7 +775,7 @@ export function DashboardOverview() {
                   // Update video in list with dubbed info
                   const updatedVideo = {
                     ...newVideo,
-                    status: 'completed',
+                    status: 'completed' as const,
                     duration_minutes: dubbedResponse.duration_minutes || 0,
                     has_subtitles: true,
                     subtitle_languages: [transcriptResponse.language],
@@ -782,10 +790,11 @@ export function DashboardOverview() {
                       updated_at: new Date().toISOString()
                     }],
                     dubbed_video_url: dubbedResponse.dubbed_video_url,
-                    dubbing_id: dubbedResponse.dubbing_id,
+                    dubbing_id: generationResponse.dubbing_id,
                     is_dubbed_audio: true
                   };
 
+                  // Update video in list
                   setVideoList(prev => prev.map(v => 
                     v.uuid === uploadResponse.video_uuid ? updatedVideo : v
                   ));
