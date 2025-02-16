@@ -389,77 +389,80 @@ function VideoCard({ video, onDelete, vttUrls }: {
         {/* Actions Section */}
         <div className="flex flex-wrap items-center gap-2 border-t pt-3">
           {video.status === 'completed' && video.has_subtitles && (
-            <div className="w-full grid grid-cols-1 gap-2">
-              {/* Subtitle Download Button */}
-              {video.subtitles.map((subtitle) => (
-                <TooltipProvider key={subtitle.uuid}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownload(subtitle, 'subtitle')}
-                        disabled={isSubtitleDownloading === subtitle.uuid}
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
-                      >
-                        {isSubtitleDownloading === subtitle.uuid ? (
-                          <>
+            <div className="w-full">
+              <div className="flex flex-col gap-3">
+                {/* Download Options */}
+                <div className="flex items-center gap-4">
+                  {/* Video Download */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownload(showDubbedVersion ? video.dubbed_video_url! : video.video_url, 'original')}
+                          disabled={isOriginalDownloading}
+                          className={cn(
+                            "relative flex-1 overflow-hidden group",
+                            showDubbedVersion
+                              ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                              : "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600",
+                            "text-white border-0 shadow-md hover:shadow-lg transition-all duration-300",
+                            isOriginalDownloading && "opacity-50"
+                          )}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          {isOriginalDownloading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Downloading...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Download className="w-4 h-4" />
-                            <span>{SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name} Subtitles</span>
-                          </>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-gray-900 text-gray-100 border border-gray-700">
-                      <p>Download {SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name} subtitles</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ))}
-              
-              {/* Video Download Button - Only show if video is dubbed */}
-              {video.dubbed_video_url ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownload(showDubbedVersion ? video.dubbed_video_url! : video.video_url, 'original')}
-                        disabled={isOriginalDownloading}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
-                      >
-                        {isOriginalDownloading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Downloading Video...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Download className="w-4 h-4" />
-                            <span>{showDubbedVersion ? 'Dubbed' : 'Original'} Video</span>
-                          </>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-gray-900 text-gray-100 border border-gray-700">
-                      <p>Download {showDubbedVersion ? 'dubbed' : 'original'} video</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <div className="w-full p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Info className="w-4 h-4" />
-                    <p>Use the video player's download button to save this video</p>
-                  </div>
+                          ) : (
+                            <div className="flex items-center gap-2 justify-center">
+                              <Download className="w-4 h-4" />
+                              {showDubbedVersion ? 'Dubbed Video' : 'Original Video'}
+                            </div>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Download {showDubbedVersion ? 'dubbed' : 'original'} video</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  {/* Subtitle Download */}
+                  {video.subtitles.map((subtitle) => (
+                    <TooltipProvider key={subtitle.uuid}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownload(subtitle, 'subtitle')}
+                            disabled={isSubtitleDownloading === subtitle.uuid}
+                            className={cn(
+                              "relative flex-1 overflow-hidden group",
+                              "bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0",
+                              "shadow-md hover:shadow-lg transition-all duration-300",
+                              "hover:from-indigo-600 hover:to-purple-600",
+                              isSubtitleDownloading === subtitle.uuid && "opacity-50"
+                            )}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            {isSubtitleDownloading === subtitle.uuid ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <div className="flex items-center gap-2 justify-center">
+                                <Download className="w-4 h-4" />
+                                {SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name || subtitle.language} Subtitles
+                              </div>
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Download {SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name} subtitles
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
           )}
 
