@@ -312,18 +312,20 @@ function VideoCard({ video, onDelete, vttUrls }: {
                   <button
                     onClick={() => setShowDubbedVersion(!showDubbedVersion)}
                     className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-colors duration-200 flex items-center gap-2",
+                      "px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-colors duration-200 flex items-center gap-2 hover:scale-105 active:scale-95",
                       showDubbedVersion
-                        ? "bg-purple-500/90 text-white hover:bg-purple-600/90"
-                        : "bg-blue-500/90 text-white hover:bg-blue-600/90"
+                        ? "bg-purple-500/90 text-white hover:bg-purple-600/90 shadow-lg shadow-purple-500/25"
+                        : "bg-blue-500/90 text-white hover:bg-blue-600/90 shadow-lg shadow-blue-500/25",
+                      "animate-pulse-once cursor-pointer"
                     )}
                   >
                     <Globe className="w-3 h-3" />
                     {showDubbedVersion ? 'Dubbed' : 'Original'}
+                    <ArrowRight className="w-3 h-3 animate-bounce-x" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="bg-gray-900 text-gray-100 border border-gray-700">
-                  <p>Switch to {showDubbedVersion ? 'original' : 'dubbed'} version</p>
+                  <p>Click to switch to {showDubbedVersion ? 'original' : 'dubbed'} version</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -949,7 +951,7 @@ export function DashboardOverview() {
           Videos
         </h1>
         <p className="mt-1 text-gray-600">
-          Upload videos and generate accurate AI-powered subtitles in multiple languages
+          Upload videos and generate accurate AI-powered subtitles and dubbed audio in multiple languages
         </p>
       </div>
 
