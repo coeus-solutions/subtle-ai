@@ -35,6 +35,8 @@ export interface RegisterResponse {
 }
 
 // Video Types
+export type SupportedLanguageType = 'en' | 'es' | 'fr' | 'de' | 'ja' | 'ru';
+
 export interface Video {
   uuid: string;
   video_url: string;
@@ -44,11 +46,12 @@ export interface Video {
   created_at: string;
   updated_at: string;
   has_subtitles: boolean;
-  subtitle_languages: string[];
+  subtitle_languages: SupportedLanguageType[];
   subtitles: Subtitle[];
   dubbed_video_url: string | null;
   dubbing_id: string | null;
   is_dubbed_audio: boolean;
+  burned_video_url: string | null;
 }
 
 export interface VideoListResponse {
@@ -84,7 +87,7 @@ export interface Subtitle {
   video_original_name: string | null;
   subtitle_url: string;
   format: string;
-  language: keyof typeof SUPPORTED_LANGUAGES;
+  language: SupportedLanguageType;
   created_at: string;
   updated_at: string;
 }
@@ -131,6 +134,16 @@ export interface DubbingResponse {
   duration_minutes: number | null;
   processing_cost: number | null;
   detail: string | null;
+}
+
+export interface BurnSubtitlesResponse {
+  message: string;
+  video_uuid: string;
+  subtitle_uuid: string;
+  burned_video_url: string;
+  language: string;
+  status: string;
+  detail: string;
 }
 
 // User Types
@@ -250,6 +263,17 @@ export const videos = {
   ): Promise<SubtitleGenerationResponse> {
     const response = await apiClient.get(
       `/videos/${videoUuid}/get-transcript-for-dub/${dubbingId}`
+    );
+    return response.data;
+  },
+
+  async burnSubtitles(
+    videoUuid: string,
+    subtitleUuid: string
+  ): Promise<BurnSubtitlesResponse> {
+    const response = await apiClient.post(
+      `/videos/${videoUuid}/burn_subtitles`,
+      { subtitle_uuid: subtitleUuid }
     );
     return response.data;
   },
