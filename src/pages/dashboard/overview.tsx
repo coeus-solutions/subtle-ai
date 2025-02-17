@@ -325,11 +325,11 @@ function VideoCard({ video, onDelete, vttUrls, onVideoUpdate, enableDubbing }: {
   // Function to get button color based on current state
   const getButtonColorClass = () => {
     if (video.dubbed_video_url && showDubbedVersion) {
-      return "bg-purple-500/90 text-white hover:bg-purple-600/90 shadow-lg shadow-purple-500/25";
+      return "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-indigo-500/25";
     } else if (!video.dubbed_video_url && video.burned_video_url && showBurnedVersion) {
-      return "bg-green-500/90 text-white hover:bg-green-600/90 shadow-lg shadow-green-500/25";
+      return "bg-gradient-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-600 hover:to-blue-600 shadow-lg shadow-blue-500/25";
     }
-    return "bg-blue-500/90 text-white hover:bg-blue-600/90 shadow-lg shadow-blue-500/25";
+    return "bg-gradient-to-r from-slate-600 to-slate-700 text-white hover:from-slate-700 hover:to-slate-800 shadow-lg shadow-slate-500/25";
   };
 
   // Function to determine which video URL to show
@@ -401,8 +401,8 @@ function VideoCard({ video, onDelete, vttUrls, onVideoUpdate, enableDubbing }: {
                     className={cn(
                       "px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-colors duration-200 flex items-center gap-2 hover:scale-105 active:scale-95",
                       showDubbedVersion
-                        ? "bg-purple-500/90 text-white hover:bg-purple-600/90 shadow-lg shadow-purple-500/25"
-                        : "bg-blue-500/90 text-white hover:bg-blue-600/90 shadow-lg shadow-blue-500/25",
+                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-indigo-500/25"
+                        : "bg-gradient-to-r from-slate-600 to-slate-700 text-white hover:from-slate-700 hover:to-slate-800 shadow-lg shadow-slate-500/25",
                       "animate-pulse-once cursor-pointer"
                     )}
                   >
@@ -428,8 +428,8 @@ function VideoCard({ video, onDelete, vttUrls, onVideoUpdate, enableDubbing }: {
                     className={cn(
                       "px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-colors duration-200 flex items-center gap-2 hover:scale-105 active:scale-95",
                       showBurnedVersion
-                        ? "bg-green-500/90 text-white hover:bg-green-600/90 shadow-lg shadow-green-500/25"
-                        : "bg-blue-500/90 text-white hover:bg-blue-600/90 shadow-lg shadow-blue-500/25",
+                        ? "bg-gradient-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-600 hover:to-blue-600 shadow-lg shadow-blue-500/25"
+                        : "bg-gradient-to-r from-slate-600 to-slate-700 text-white hover:from-slate-700 hover:to-slate-800 shadow-lg shadow-slate-500/25",
                       "animate-pulse-once cursor-pointer"
                     )}
                   >
@@ -548,10 +548,10 @@ function VideoCard({ video, onDelete, vttUrls, onVideoUpdate, enableDubbing }: {
                             disabled={isSubtitleDownloading === subtitle.uuid}
                             className={cn(
                               "relative flex-1 overflow-hidden group",
-                              "bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0",
+                              "bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0",
                               "shadow-md hover:shadow-lg transition-all duration-300",
                               "hover:scale-[1.02] active:scale-[0.98]",
-                              "hover:from-indigo-600 hover:to-purple-600",
+                              "hover:from-violet-600 hover:to-purple-600",
                               isSubtitleDownloading === subtitle.uuid && "opacity-50"
                             )}
                           >
