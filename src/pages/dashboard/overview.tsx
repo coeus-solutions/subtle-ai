@@ -860,7 +860,15 @@ export function DashboardOverview() {
         };
 
         setVideoList(prev => [newVideo, ...prev]);
+        
+        // Reset modal state and close it
         setIsUploadModalOpen(false);
+        setSelectedFile(null);
+        setSelectedLanguage('en');
+        setError(null);
+        setEnableDubbing(false);
+        setShowLanguageTooltip(false);
+        setIsUploading(false);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -969,6 +977,45 @@ export function DashboardOverview() {
             return enableDubbing 
               ? "Video uploaded. Dubbing and subtitle generation in progress..."
               : "Video uploaded and subtitles generated successfully!";
+          } else if (!enableDubbing && generationResponse.subtitle_uuid) {
+            // If dubbing is disabled and we have subtitles, burn them into the video
+            try {
+              const burnResponse = await videos.burnSubtitles(
+                uploadResponse.video_uuid,
+                generationResponse.subtitle_uuid
+              );
+
+              if (burnResponse.status === 'completed' && generationResponse.language) {
+                // Update video with both subtitle and burned video info
+                const updatedVideo: Video = {
+                  ...newVideo,
+                  status: 'completed',
+                  has_subtitles: true,
+                  burned_video_url: burnResponse.burned_video_url,
+                  subtitle_languages: [generationResponse.language as SupportedLanguageType],
+                  subtitles: [{
+                    uuid: generationResponse.subtitle_uuid,
+                    language: generationResponse.language as SupportedLanguageType,
+                    subtitle_url: generationResponse.subtitle_url!,
+                    created_at: new Date().toISOString(),
+                    video_uuid: uploadResponse.video_uuid,
+                    video_original_name: selectedFile.name,
+                    format: 'srt',
+                    updated_at: new Date().toISOString()
+                  }]
+                };
+
+                // Update video in list
+                setVideoList(prev => prev.map(v => 
+                  v.uuid === uploadResponse.video_uuid ? updatedVideo : v
+                ));
+
+                return "Video uploaded and subtitles burned successfully!";
+              }
+            } catch (burnError) {
+              console.error('Error burning subtitles:', burnError);
+              throw new Error('Failed to burn subtitles into video');
+            }
           }
 
           // Refresh user details to update minutes
@@ -1099,40 +1146,31 @@ export function DashboardOverview() {
       <Button
         onClick={() => setIsUploadModalOpen(true)}
         size="lg"
-        className="fixed bottom-6 right-6 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={isAnyVideoProcessing()}
+        className="fixed bottom-6 right-6 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90"
       >
-        {isAnyVideoProcessing() ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          <>
-            <Plus className="w-4 h-4 mr-2" />
-            Upload Video
-          </>
-        )}
+        <Plus className="w-4 h-4 mr-2" />
+        Upload Video
       </Button>
 
       {/* Upload Modal */}
-      <Dialog open={isUploadModalOpen && !isAnyVideoProcessing()} onOpenChange={(open) => {
-        // Only allow opening if no video is processing
-        if (isAnyVideoProcessing()) {
-          return;
-        }
-        setIsUploadModalOpen(open);
-        if (!open) {
-          setSelectedFile(null);
-          setSelectedLanguage('en');
-          setError(null);
-          setEnableDubbing(false); // Reset dubbing state when modal is closed
-          setShowLanguageTooltip(false); // Reset tooltip state when modal is closed
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
+      <Dialog 
+        open={isUploadModalOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            // Reset all states when modal is closed
+            setSelectedFile(null);
+            setSelectedLanguage('en');
+            setError(null);
+            setEnableDubbing(false);
+            setShowLanguageTooltip(false);
+            setIsUploading(false);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
           }
-        }
-      }}>
+          setIsUploadModalOpen(open);
+        }}
+      >
         <DialogContent className="sm:max-w-[425px] z-[100] bg-white">
           <DialogHeader>
             <DialogTitle>Upload Video</DialogTitle>
