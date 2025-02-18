@@ -189,6 +189,14 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
       setIsGenerating(true);
       setError(null);
 
+      // Update video with initial processing message
+      const updatedVideo: Video = {
+        ...video,
+        status: 'processing',
+        processingMessage: 'Generating Subtitles...'
+      };
+      onVideoUpdate(updatedVideo);
+
       const defaultLanguage: SupportedLanguageType = 'en';
       const response = await videos.generateSubtitles(
         video.uuid, 
@@ -199,6 +207,12 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
         // Only call burn_subtitles if dubbing is not enabled
         if (!enableDubbing && response.subtitle_uuid) {
           try {
+            // Update message before burning subtitles
+            onVideoUpdate({
+              ...updatedVideo,
+              processingMessage: 'Burning Subtitles...'
+            });
+
             const burnResponse = await videos.burnSubtitles(
               video.uuid,
               response.subtitle_uuid
@@ -207,7 +221,7 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
             if (burnResponse.status === 'completed') {
               toast.success('Subtitles generated and burned successfully!');
               // Update video in the list with both subtitle and burned video info
-              const updatedVideo: Video = { 
+              const completedVideo: Video = { 
                 ...video, 
                 status: 'completed', 
                 has_subtitles: true,
@@ -227,31 +241,21 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
                   updated_at: new Date().toISOString()
                 }]
               };
-              onVideoUpdate(updatedVideo);
+              onVideoUpdate(completedVideo);
             }
           } catch (burnError) {
             console.error('Error burning subtitles:', burnError);
             toast.error('Failed to burn subtitles into video');
           }
         } else {
-          // Just update with subtitle info if dubbing is enabled
-          const updatedVideo: Video = { 
-            ...video, 
-            status: 'completed', 
-            has_subtitles: true,
-            subtitle_languages: [response.language as SupportedLanguageType],
-            subtitles: [{
-              uuid: response.subtitle_uuid,
-              language: response.language as SupportedLanguageType,
-              subtitle_url: response.subtitle_url,
-              created_at: new Date().toISOString(),
-              video_uuid: video.uuid,
-              video_original_name: video.original_name,
-              format: 'srt',
-              updated_at: new Date().toISOString()
-            }]
-          };
-          onVideoUpdate(updatedVideo);
+          // For dubbing flow, update message for polling
+          if (response.dubbing_id) {
+            onVideoUpdate({
+              ...updatedVideo,
+              dubbing_id: response.dubbing_id,
+              processingMessage: 'Dubbing Audio...'
+            });
+          }
         }
       }
     } catch (err: any) {
@@ -302,6 +306,18 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
       setIsGenerating(false);
     }
   };
+
+  // Update the polling logic to maintain the "Dubbing Audio..." message
+  useEffect(() => {
+    if (video.dubbing_id && !video.dubbed_video_url) {
+      // Keep "Dubbing Audio..." message during polling
+      onVideoUpdate({
+        ...video,
+        status: 'processing',
+        processingMessage: 'Dubbing Audio...'
+      });
+    }
+  }, [video.dubbing_id, video.dubbed_video_url]);
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this video and its subtitles?')) {
@@ -378,9 +394,7 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
                 <div className="text-center text-white">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
                   <p className="text-sm font-medium">
-                    {video.dubbed_video_url ? 'Processing Dubbed Video...' : 
-                     video.has_subtitles && !video.burned_video_url ? 'Burning Subtitles...' :
-                     'Generating Subtitles...'}
+                    {video.processingMessage || 'Generating Subtitles...'}
                   </p>
                 </div>
               </div>
@@ -766,17 +780,18 @@ export function DashboardOverview() {
           }
         }
 
-        // Add video to list
+        // Add video to list with initial processing message
         const newVideo: Video = {
           uuid: uploadResponse.video_uuid,
           video_url: uploadResponse.file_url,
           original_name: selectedFile.name,
           duration_minutes: 0,
-          status: 'uploading',
+          status: 'processing',
+          processingMessage: 'Generating Subtitles...',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           has_subtitles: false,
-          subtitle_languages: [] as SupportedLanguageType[],
+          subtitle_languages: [],
           subtitles: [],
           dubbed_video_url: null,
           dubbing_id: null,
@@ -807,6 +822,13 @@ export function DashboardOverview() {
           );
 
           if (enableDubbing && generationResponse.dubbing_id) {
+            // Update video with dubbing message
+            setVideoList(prev => prev.map(v => 
+              v.uuid === uploadResponse.video_uuid 
+                ? { ...v, processingMessage: 'Dubbing Audio...' }
+                : v
+            ));
+
             // Start polling for dubbing status
             const pollDubbingStatus = async () => {
               if (!generationResponse.dubbing_id) return;
@@ -904,6 +926,13 @@ export function DashboardOverview() {
               ? "Video uploaded. Dubbing and subtitle generation in progress..."
               : "Video uploaded and subtitles generated successfully!";
           } else if (!enableDubbing && generationResponse.subtitle_uuid) {
+            // Update message for burning subtitles
+            setVideoList(prev => prev.map(v => 
+              v.uuid === uploadResponse.video_uuid 
+                ? { ...v, processingMessage: 'Burning Subtitles...' }
+                : v
+            ));
+
             // If dubbing is disabled and we have subtitles, burn them into the video
             try {
               const burnResponse = await videos.burnSubtitles(

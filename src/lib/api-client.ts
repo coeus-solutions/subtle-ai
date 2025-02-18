@@ -37,7 +37,7 @@ export interface RegisterResponse {
 // Video Types
 export type SupportedLanguageType = 'en' | 'es' | 'fr' | 'de' | 'ja' | 'ru';
 
-export interface Video {
+export type Video = {
   uuid: string;
   video_url: string;
   original_name: string | null;
@@ -46,13 +46,14 @@ export interface Video {
   created_at: string;
   updated_at: string;
   has_subtitles: boolean;
-  subtitle_languages: SupportedLanguageType[];
-  subtitles: Subtitle[];
+  subtitle_languages: Array<SupportedLanguageType>;
+  subtitles: Array<Subtitle>;
   dubbed_video_url: string | null;
   dubbing_id: string | null;
   is_dubbed_audio: boolean;
   burned_video_url: string | null;
-}
+  processingMessage?: string;
+};
 
 export interface VideoListResponse {
   message: string;
