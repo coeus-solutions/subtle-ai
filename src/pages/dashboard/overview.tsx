@@ -41,7 +41,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { convertSrtToVtt } from '@/lib/subtitle-utils';
 import toast from 'react-hot-toast';
 import { useUserDetails } from '@/hooks/use-user-details';
 import { cn } from '@/lib/utils';
@@ -55,11 +54,10 @@ const SUPPORTED_LANGUAGES = [
   { code: 'ru' as SupportedLanguageType, name: 'Russian'}
 ] as const;
 
-function VideoCard({ video, onDelete, vttUrls, onVideoUpdate, enableDubbing }: { 
+function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: { 
   video: Video; 
   onDelete: (videoId: string) => void;
   onVideoUpdate: (updatedVideo: Video) => void;
-  vttUrls: Record<string, string>;
   enableDubbing: boolean;
 }) {
   const [isSubtitleDownloading, setIsSubtitleDownloading] = useState<string | null>(null);
@@ -406,13 +404,12 @@ function VideoCard({ video, onDelete, vttUrls, onVideoUpdate, enableDubbing }: {
                       "animate-pulse-once cursor-pointer"
                     )}
                   >
-                    <Globe className="w-3 h-3" />
                     {getCurrentStateLabel()}
                     <ArrowRight className="w-3 h-3 animate-bounce-x" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-gray-900 text-gray-100 border border-gray-700">
-                  <p>Click to switch to {getNextStateLabel()} version</p>
+                <TooltipContent className="bg-gray-900 text-gray-100 border border-gray-700">
+                  <p>Switch to {getNextStateLabel()} version</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -433,13 +430,12 @@ function VideoCard({ video, onDelete, vttUrls, onVideoUpdate, enableDubbing }: {
                       "animate-pulse-once cursor-pointer"
                     )}
                   >
-                    <Subtitles className="w-3 h-3" />
                     {getCurrentStateLabel()}
                     <ArrowRight className="w-3 h-3 animate-bounce-x" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-gray-900 text-gray-100 border border-gray-700">
-                  <p>Click to switch to {getNextStateLabel()} version</p>
+                <TooltipContent className="bg-gray-900 text-gray-100 border border-gray-700">
+                  <p>Switch to {getNextStateLabel()} version</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -487,7 +483,9 @@ function VideoCard({ video, onDelete, vttUrls, onVideoUpdate, enableDubbing }: {
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Delete video</TooltipContent>
+              <TooltipContent className="bg-gray-900 text-gray-100 border border-gray-700">
+                Delete video
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
@@ -530,7 +528,7 @@ function VideoCard({ video, onDelete, vttUrls, onVideoUpdate, enableDubbing }: {
                           )}
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>
+                      <TooltipContent className="bg-gray-900 text-gray-100 border border-gray-700">
                         Download {getCurrentStateLabel()} Video
                       </TooltipContent>
                     </Tooltip>
@@ -566,7 +564,7 @@ function VideoCard({ video, onDelete, vttUrls, onVideoUpdate, enableDubbing }: {
                             )}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="bg-gray-900 text-gray-100 border border-gray-700">
                           Download {SUPPORTED_LANGUAGES.find(l => l.code === subtitle.language)?.name} subtitles
                         </TooltipContent>
                       </Tooltip>
@@ -645,83 +643,15 @@ export function DashboardOverview() {
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguageType>('en');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [vttUrlsMap, setVttUrlsMap] = useState<Record<string, Record<string, string>>>({});
   const { fetchUserDetails } = useUserDetails();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [enableDubbing, setEnableDubbing] = useState(false);
   const [showLanguageTooltip, setShowLanguageTooltip] = useState(false);
 
-  // Function to convert subtitles for a video
-  const convertSubtitlesForVideo = async (video: Video) => {
-    // Skip WebVTT conversion for non-dubbed videos
-    if (!video.is_dubbed_audio) {
-      return;
-    }
-
-    if (video.status === 'completed' && video.has_subtitles && video.subtitles.length > 0) {
-      const vttUrls: Record<string, string> = {};
-      
-      for (const subtitle of video.subtitles) {
-        try {
-          const vttUrl = await convertSrtToVtt(subtitle.subtitle_url);
-          vttUrls[subtitle.language] = vttUrl;
-        } catch (error) {
-          console.error(`Error converting subtitle for video ${video.uuid}:`, error);
-        }
-      }
-
-      setVttUrlsMap(prev => ({
-        ...prev,
-        [video.uuid]: vttUrls
-      }));
-
-      // Enable subtitles for this video immediately
-      enableSubtitlesForVideo(video.video_url, video.subtitle_languages[0]);
-    }
-  };
-
-  // Add a new function to enable subtitles
-  const enableSubtitlesForVideo = (videoUrl: string, defaultLanguage: string) => {
-    // Find all video elements with this video's source
-    const videoElements = document.querySelectorAll('video');
-    videoElements.forEach(videoElement => {
-      if (videoElement.src === videoUrl) {
-        // Wait for tracks to be loaded
-        if (videoElement.textTracks.length > 0) {
-          // Enable the appropriate track
-          Array.from(videoElement.textTracks).forEach(track => {
-            track.mode = track.language === defaultLanguage ? 'showing' : 'hidden';
-          });
-        } else {
-          // If tracks aren't loaded yet, wait for them
-          videoElement.addEventListener('loadedmetadata', () => {
-            Array.from(videoElement.textTracks).forEach(track => {
-              track.mode = track.language === defaultLanguage ? 'showing' : 'hidden';
-            });
-          }, { once: true });
-        }
-      }
-    });
-  };
-
-  // Cleanup function for object URLs
-  const cleanupVttUrls = () => {
-    Object.values(vttUrlsMap).forEach(urlMap => {
-      Object.values(urlMap).forEach(url => {
-        URL.revokeObjectURL(url);
-      });
-    });
-  };
-
   const fetchVideos = async () => {
     try {
       const response = await videos.list(true);
       setVideoList(response.videos);
-      
-      // Convert subtitles for all videos that have them
-      for (const video of response.videos) {
-        await convertSubtitlesForVideo(video);
-      }
     } catch (err) {
       console.error('Error fetching videos:', err);
     }
@@ -736,11 +666,6 @@ export function DashboardOverview() {
       setIsLoading(false);
     };
     loadInitialData();
-
-    // Cleanup on unmount
-    return () => {
-      cleanupVttUrls();
-    };
   }, []);
 
   // Function to handle video deletion
@@ -951,8 +876,9 @@ export function DashboardOverview() {
                         v.uuid === uploadResponse.video_uuid ? updatedVideo : v
                       ));
 
-                      // Convert and enable subtitles
-                      await convertSubtitlesForVideo(updatedVideo);
+                      // Update user details to reflect usage
+                      await fetchUserDetails();
+
                       return;
                     }
                   } catch (error) {
@@ -1009,6 +935,9 @@ export function DashboardOverview() {
                 setVideoList(prev => prev.map(v => 
                   v.uuid === uploadResponse.video_uuid ? updatedVideo : v
                 ));
+
+                // Update user details to reflect usage
+                await fetchUserDetails();
 
                 return "Video uploaded and subtitles burned successfully!";
               }
@@ -1399,7 +1328,6 @@ export function DashboardOverview() {
             video={video} 
             onDelete={handleVideoDelete}
             onVideoUpdate={handleVideoUpdate}
-            vttUrls={vttUrlsMap[video.uuid] || {}}
             enableDubbing={enableDubbing}
           />
         ))}
