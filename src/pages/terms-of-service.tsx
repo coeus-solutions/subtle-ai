@@ -1,8 +1,52 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
 
 export function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 text-white">
+      {/* Navigation */}
+      <motion.header 
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        className="fixed w-full z-50 bg-black/80 backdrop-blur-lg border-b border-white/10"
+      >
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <motion.div 
+            className="flex items-center"
+            whileHover={{ scale: 1.05 }}
+          >
+            <Link to="/">
+              <div className="flex items-center">
+                <img
+                  src="/favicon.svg"
+                  alt="SubtleAI Logo"
+                  className="w-8 h-8 mr-2"
+                />
+                <span className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                  SubtleAI
+                </span>
+              </div>
+            </Link>
+          </motion.div>
+          <div className="flex items-center gap-4">
+            <Link to="/login">
+              <Button variant="outline" className="border-white/20 hover:border-white/40 hover:bg-white/5 text-gray-100 hover:text-white transition-colors font-medium bg-white/5">
+                Sign in
+              </Button>
+            </Link>
+            <Link to="/register">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500">
+                  Get Started
+                </Button>
+              </motion.div>
+            </Link>
+          </div>
+        </nav>
+      </motion.header>
+
       <main className="pt-24 pb-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">

@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 const SUPPORTED_LANGUAGES = [
-  "English", "German", "Spanish", "French", "Japanese"
+  "English", "Spanish", "French", "German", "Japanese", "Russian", "Italian", "Chinese", "Turkish", "Korean", "Portuguese"
 ];
 
 const FEATURES = [
@@ -38,7 +38,7 @@ const FEATURES = [
       },
       {
         icon: <Languages className="w-4 h-4 text-purple-400" />,
-        text: "5 Languages",
+        text: "10+ Languages",
         position: "bottom-left",
         color: "purple"
       }
@@ -48,14 +48,14 @@ const FEATURES = [
     id: 2,
     icon: <Languages className="w-8 h-8 text-purple-400" />,
     title: "Multiple Languages",
-    description: "Generate subtitles in five different languages instantly. Perfect for reaching a global audience with your content.",
+    description: "Generate subtitles and AI-powered dubbed audio in multiple languages instantly. Perfect for reaching a global audience with your content.",
     image: "/screenshots/target-language.png",
     color: "purple",
     stats: [
-      { label: "Languages", value: "5+" },
+      { label: "Languages", value: "10+" },
       { label: "Translation Time", value: "Instant" },
       { label: "Accuracy", value: "98%" },
-      { label: "Auto-Detection", value: "Yes" }
+      { label: "Audio Dubbing", value: "Included" }
     ],
     floatingElements: [
       {
@@ -65,8 +65,8 @@ const FEATURES = [
         color: "purple"
       },
       {
-        icon: <CheckCircle2 className="w-4 h-4 text-blue-400" />,
-        text: "Auto Language Detection",
+        icon: <Subtitles className="w-4 h-4 text-blue-400" />,
+        text: "AI Dubbing",
         position: "bottom-left",
         color: "blue"
       }
@@ -252,19 +252,19 @@ const features = [
   },
   {
     title: "Multiple Languages",
-    description: "Generate subtitles in English, Spanish, French, German, and Japanese",
+    description: "Generate subtitles and AI-dubbed audio in English, Spanish, French, German, Japanese, Russian, Italian, Chinese, Turkish, Korean, and Portuguese",
     icon: Globe,
     image: "/screenshots/target-language.png"
   },
   {
     title: "Quick Processing",
-    description: "Fast and accurate subtitle generation powered by advanced AI",
+    description: "Fast and accurate subtitle generation and audio dubbing powered by advanced AI",
     icon: Zap,
     image: "/screenshots/full-dashboard-page.png"
   },
   {
     title: "Usage Tracking",
-    description: "Monitor your subtitle generation usage and billing in real-time",
+    description: "Monitor your subtitle generation and dubbing usage in real-time",
     icon: Clock,
     image: "/screenshots/billing-n-usage.png"
   }
@@ -272,6 +272,7 @@ const features = [
 
 const benefits = [
   "Accurate subtitle generation",
+  "AI-powered audio dubbing",
   "Multiple language support",
   "Real-time video preview",
   "Easy subtitle downloads",
@@ -283,52 +284,66 @@ const benefits = [
 
 const PRICING_TIERS = [
   {
-    name: "Pay as You Go",
-    description: "Perfect for individual content creators and small projects",
-    price: "0.10",
-    unit: "per minute",
+    name: "Free",
+    description: "Perfect for trying out our platform",
+    price: "0",
+    unit: "forever",
     features: [
-      "All supported languages",
-      "Real-time preview",
-      "SRT/VTT export",
-      "Basic support",
-      "Pay only for what you use"
+      "30 minutes included monthly",
+      "All languages supported",
+      "Real-time preview & export",
+      "Additional minutes at $1.25/min",
+      "7-day video storage"
     ],
-    cta: "Start Free",
+    cta: "Get Started Free",
+    popular: false,
+    gradient: "from-gray-500/20 via-gray-400/10 to-gray-600/5"
+  },
+  {
+    name: "Starter",
+    description: "Perfect for individual content creators",
+    price: "180",
+    unit: "per month",
+    features: [
+      "120 minutes included monthly",
+      "All languages supported",
+      "Real-time preview & advanced export",
+      "Additional minutes at $1.25/min",
+      "30-day video storage"
+    ],
+    cta: "Start Free Trial",
     popular: false,
     gradient: "from-blue-500/20 via-blue-400/10 to-blue-600/5"
   },
   {
-    name: "Pro",
-    description: "Ideal for professional content creators and small teams",
-    price: "29",
+    name: "Professional",
+    description: "Ideal for professional content creators",
+    price: "310",
     unit: "per month",
     features: [
-      "600 minutes included",
-      "Additional minutes at $0.08",
-      "Priority processing",
-      "Priority support",
-      "Team collaboration",
-      "API access"
+      "250 minutes included monthly",
+      "Priority support & API access",
+      "Team collaboration features",
+      "Additional minutes at $1.25/min",
+      "90-day video storage"
     ],
     cta: "Start Pro Trial",
     popular: true,
     gradient: "from-purple-500/20 via-pink-500/10 to-blue-500/20"
   },
   {
-    name: "Enterprise",
-    description: "Custom solutions for large organizations",
-    price: "Custom",
-    unit: "contact sales",
+    name: "Business",
+    description: "For businesses with high-volume needs",
+    price: "550",
+    unit: "per month",
     features: [
-      "Custom volume pricing",
-      "Dedicated support",
-      "Custom integrations",
-      "SLA guarantees",
-      "Security assessment",
-      "Training & onboarding"
+      "480 minutes included monthly",
+      "Dedicated support & custom integrations",
+      "Advanced team management",
+      "Additional minutes at $1.25/min",
+      "Unlimited video storage"
     ],
-    cta: "Contact Sales",
+    cta: "Start Business Trial",
     popular: false,
     gradient: "from-blue-600/20 via-purple-600/10 to-pink-600/20"
   }
@@ -365,7 +380,7 @@ const PROCESS_STEPS = [
   {
     icon: <Video className="w-8 h-8 text-blue-400" />,
     title: "Upload Your Video",
-    description: "Simply drag and drop your video file or paste a URL. We support all major video formats.",
+    description: "Simply drag and drop your video file or paste a URL. We support all major video and audio formats.",
     mockup: (
       <div className="relative w-full aspect-video bg-slate-800/50 backdrop-blur-xl rounded-xl p-6 border border-white/10">
         <div className="absolute inset-0 flex items-center justify-center">
@@ -382,11 +397,18 @@ const PROCESS_STEPS = [
   {
     icon: <Cpu className="w-8 h-8 text-purple-400" />,
     title: "AI Processing",
-    description: "Our advanced AI analyzes your video and generates accurate subtitles in real-time.",
+    description: "Our advanced AI analyzes your video to generate accurate subtitles and create natural-sounding dubbed audio.",
     mockup: (
       <div className="relative w-full aspect-video bg-slate-800/50 backdrop-blur-xl rounded-xl p-6 border border-white/10">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-full max-w-md space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Subtitles className="w-5 h-5 text-purple-400" />
+                <span className="text-purple-200 text-sm">Generating Subtitles</span>
+              </div>
+              <CheckCircle2 className="w-5 h-5 text-green-400" />
+            </div>
             <div className="h-2 bg-purple-500/20 rounded-full overflow-hidden">
               <motion.div 
                 className="h-full bg-purple-500"
@@ -395,12 +417,17 @@ const PROCESS_STEPS = [
                 transition={{ duration: 2, repeat: Infinity }}
               />
             </div>
-            <div className="flex items-center gap-4">
-              <Cpu className="w-8 h-8 text-purple-400 animate-pulse" />
-              <div className="flex-1 space-y-2">
-                <div className="h-2 bg-purple-500/20 rounded-full w-3/4" />
-                <div className="h-2 bg-purple-500/20 rounded-full w-1/2" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Languages className="w-5 h-5 text-purple-400" />
+                <span className="text-purple-200 text-sm">Creating Dubbed Audio</span>
               </div>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
+                <Cpu className="w-5 h-5 text-purple-400" />
+              </motion.div>
             </div>
           </div>
         </div>
@@ -410,22 +437,22 @@ const PROCESS_STEPS = [
   {
     icon: <Languages className="w-8 h-8 text-pink-400" />,
     title: "Choose Languages",
-    description: "Select from multiple languages for instant translation of your subtitles.",
+    description: "Select from multiple languages for instant translation and AI dubbing of your content. Each language comes with subtitles and natural voice dubbing.",
     mockup: (
       <div className="relative w-full aspect-video bg-slate-800/50 backdrop-blur-xl rounded-xl p-6 border border-white/10">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-full max-w-md">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               {SUPPORTED_LANGUAGES.map((lang, index) => (
                 <motion.div
                   key={lang}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="bg-pink-500/10 border border-pink-500/20 rounded-lg p-4 flex items-center gap-3"
+                  className="bg-pink-500/10 border border-pink-500/20 rounded-lg p-3 flex items-center gap-2.5"
                 >
                   <Languages className="w-5 h-5 text-pink-400" />
-                  <span className="text-pink-200">{lang}</span>
+                  <span className="text-pink-200 text-sm font-medium">{lang}</span>
                 </motion.div>
               ))}
             </div>
@@ -437,7 +464,7 @@ const PROCESS_STEPS = [
   {
     icon: <FileCheck className="w-8 h-8 text-emerald-400" />,
     title: "Review & Export",
-    description: "Preview, edit if needed, and export your subtitles in your preferred format.",
+    description: "Preview both subtitled and dubbed versions, then export your video with perfect synchronization in any supported language.",
     mockup: (
       <div className="relative w-full aspect-video bg-slate-800/50 backdrop-blur-xl rounded-xl p-6 border border-white/10">
         <div className="absolute inset-0 flex items-center justify-center">
@@ -446,12 +473,18 @@ const PROCESS_STEPS = [
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <FileCheck className="w-5 h-5 text-emerald-400" />
-                  <span className="text-emerald-200">subtitles_final.srt</span>
+                  <span className="text-emerald-200">Ready to Export</span>
                 </div>
-                <Button size="sm" className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300">
+                    <Subtitles className="w-4 h-4 mr-2" />
+                    Subtitled
+                  </Button>
+                  <Button size="sm" className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300">
+                    <Languages className="w-4 h-4 mr-2" />
+                    Dubbed
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <div className="h-2 bg-emerald-500/20 rounded-full w-full" />
@@ -536,6 +569,17 @@ export function LandingPage() {
             </span>
           </motion.div>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => {
+                const pricingSection = document.getElementById('pricing-section');
+                if (pricingSection) {
+                  pricingSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="text-gray-300 hover:text-white transition-colors font-medium"
+            >
+              Pricing
+            </button>
             <Link to="/login">
               <Button variant="outline" className="border-white/20 hover:border-white/40 hover:bg-white/5 text-gray-100 hover:text-white transition-colors font-medium bg-white/5">
                 Sign in
@@ -582,7 +626,7 @@ export function LandingPage() {
                 </span>
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  With AI-Powered Subtitles
+                  With AI Dubbing & Subtitles
                 </span>
               </motion.h1>
 
@@ -593,7 +637,7 @@ export function LandingPage() {
                 className="relative"
               >
                 <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-8">
-                  Generate professional subtitles in{' '}
+                  Generate professional subtitles and dubbed audio in{' '}
                   <AnimatePresence mode="wait">
                     <motion.span
                       key={currentLanguage}
@@ -605,7 +649,8 @@ export function LandingPage() {
                       {SUPPORTED_LANGUAGES[currentLanguage]}
                     </motion.span>
                   </AnimatePresence>
-                  {' '}instantly with our cutting-edge AI technology.
+                  <br />
+                  instantly with our cutting-edge AI technology.
                 </p>
               </motion.div>
 
@@ -626,7 +671,12 @@ export function LandingPage() {
                     </Button>
                   </motion.div>
                 </Link>
-                <div className="flex flex-col items-center sm:items-start gap-2">
+                <motion.div
+                  className="flex flex-col items-center sm:items-start gap-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
                   <motion.p 
                     className="text-gray-400 font-medium flex items-center gap-2"
                     initial={{ opacity: 0 }}
@@ -634,7 +684,7 @@ export function LandingPage() {
                     transition={{ delay: 0.8 }}
                   >
                     <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                    Try for free • No credit card required
+                    Start with 30 free minutes • No credit card required
                   </motion.p>
                   <motion.div
                     className="flex items-center gap-3"
@@ -642,11 +692,13 @@ export function LandingPage() {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.9 }}
                   >
-                    <div className="flex items-baseline">
-                      <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                        $0.10
-                      </span>
-                      <span className="text-gray-400 text-sm font-medium">/minute</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-baseline">
+                        <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                          $1.25
+                        </span>
+                        <span className="text-gray-400 text-sm font-medium">/minute</span>
+                      </div>
                     </div>
                     <span className="text-gray-500">•</span>
                     <div className="flex items-center gap-1.5">
@@ -661,7 +713,7 @@ export function LandingPage() {
                       />
                     </div>
                   </motion.div>
-                </div>
+                </motion.div>
               </motion.div>
             </motion.div>
 
@@ -976,10 +1028,10 @@ export function LandingPage() {
         </section>
 
         {/* Enhanced Pricing Section */}
-        <section className="relative py-24 bg-black">
+        <section className="relative py-24 bg-black" id="pricing-section">
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute w-full h-full">
-              <div className="absolute top-1/4 -left-1/4 w-96 h-96 bg-blue-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
+              <div className="absolute top-1/4 -left-1/4 w-96 h-96 bg-blue-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
               <div className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-purple-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
               <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-pink-500/20 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000" />
             </div>
@@ -1001,8 +1053,9 @@ export function LandingPage() {
               </motion.div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
-              {PRICING_TIERS.map((tier, index) => (
+            {/* Paid Tiers */}
+            <div className="grid md:grid-cols-3 gap-8 mb-16">
+              {PRICING_TIERS.slice(1).map((tier, index) => (
                 <motion.div
                   key={tier.name}
                   initial={{ opacity: 0, y: 20 }}
@@ -1031,14 +1084,8 @@ export function LandingPage() {
 
                   <div className="mb-8">
                     <div className="flex items-baseline">
-                      {tier.price === "Custom" ? (
-                        <span className="text-4xl font-bold text-white">Custom</span>
-                      ) : (
-                        <>
-                          <span className="text-2xl font-bold text-white">$</span>
-                          <span className="text-4xl font-bold text-white">{tier.price}</span>
-                        </>
-                      )}
+                      <span className="text-2xl font-bold text-white">$</span>
+                      <span className="text-4xl font-bold text-white">{tier.price}</span>
                       <span className="ml-2 text-gray-300">/{tier.unit}</span>
                     </div>
                   </div>
@@ -1111,10 +1158,10 @@ export function LandingPage() {
             className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-8 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Ready to Get Started?
+              Ready to Go Global?
             </h2>
             <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-              Join thousands of content creators who trust SubtleAI for their subtitle generation needs.
+              Transform your content with AI-powered subtitles and natural voice dubbing in multiple languages. Reach a global audience effortlessly.
             </p>
             <Link to="/register">
               <motion.div
@@ -1122,7 +1169,7 @@ export function LandingPage() {
                 whileTap={{ scale: 0.95 }}
               >
                 <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all group">
-                  Start Generating Subtitles
+                  Start Creating
                   <Sparkles className="w-5 h-5 ml-2 group-hover:animate-pulse" />
                 </Button>
               </motion.div>

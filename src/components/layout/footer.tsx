@@ -28,7 +28,7 @@ export function Footer() {
                   </span>
                 </motion.div>
                 <p className="text-gray-400 text-sm leading-relaxed max-w-md">
-                  Transform your videos with AI-powered subtitles. Fast, accurate, and multilingual subtitle generation for content creators worldwide. Experience professional-grade results with our cutting-edge technology.
+                  Transform your videos with AI-powered subtitles and natural voice dubbing. Create professional multilingual content with perfect synchronization. Experience the future of content localization with our cutting-edge technology.
                 </p>
               </div>
             </div>
