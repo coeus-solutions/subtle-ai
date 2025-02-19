@@ -12,7 +12,12 @@ export const SUPPORTED_LANGUAGES = {
   'fr': 'French',
   'de': 'German',
   'ja': 'Japanese',
-  'ru': 'Russian'
+  'ru': 'Russian',
+  'it': 'Italian',
+  'zh': 'Chinese',
+  'tr': 'Turkish',
+  'ko': 'Korean',
+  'pt': 'Portuguese'
 } as const;
 
 // Auth Types
@@ -35,7 +40,7 @@ export interface RegisterResponse {
 }
 
 // Video Types
-export type SupportedLanguageType = 'en' | 'es' | 'fr' | 'de' | 'ja' | 'ru';
+export type SupportedLanguageType = 'en' | 'es' | 'fr' | 'de' | 'ja' | 'ru' | 'it' | 'zh' | 'tr' | 'ko' | 'pt';
 
 export type Video = {
   uuid: string;
