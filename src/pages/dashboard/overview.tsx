@@ -51,7 +51,12 @@ const SUPPORTED_LANGUAGES = [
   { code: 'fr' as SupportedLanguageType, name: 'French' },
   { code: 'de' as SupportedLanguageType, name: 'German' },
   { code: 'ja' as SupportedLanguageType, name: 'Japanese' },
-  { code: 'ru' as SupportedLanguageType, name: 'Russian'}
+  { code: 'ru' as SupportedLanguageType, name: 'Russian' },
+  { code: 'it' as SupportedLanguageType, name: 'Italian' },
+  { code: 'zh' as SupportedLanguageType, name: 'Chinese' },
+  { code: 'tr' as SupportedLanguageType, name: 'Turkish' },
+  { code: 'ko' as SupportedLanguageType, name: 'Korean' },
+  { code: 'pt' as SupportedLanguageType, name: 'Portuguese' }
 ] as const;
 
 function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: { 
@@ -1218,7 +1223,7 @@ export function DashboardOverview() {
                   <SelectTrigger className="w-full bg-white">
                     <SelectValue placeholder="Choose subtitle language" />
                   </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={8} className="bg-white z-[110]">
+                  <SelectContent position="popper" sideOffset={8} className="bg-white z-[110] max-h-[300px] overflow-y-auto">
                     {SUPPORTED_LANGUAGES.map((lang) => (
                       <SelectItem 
                         key={lang.code} 
