@@ -19,7 +19,9 @@ import {
   Subtitles,
   Palette,
   Bold,
-  Italic
+  Italic,
+  ArrowUpDown,
+  Type
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { videos, subtitles, users, type Video, type Subtitle, type UserDetails, type SupportedLanguageType } from '@/lib/api-client';
@@ -781,12 +783,12 @@ function SubtitleStyleModal({
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[65]" />
       
       <Dialog open onOpenChange={onClose} modal>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-gray-900 z-[70] overflow-hidden">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle className="text-xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-gray-900/95 backdrop-blur-xl z-[70] overflow-hidden border-2 border-gray-800 rounded-xl">
+          <DialogHeader className="p-8 pb-0">
+            <DialogTitle className="text-2xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               Customize Subtitle Style
             </DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-gray-400 mt-2">
               Preview and adjust how your subtitles will appear in the video
             </DialogDescription>
           </DialogHeader>
@@ -794,15 +796,15 @@ function SubtitleStyleModal({
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 p-2 rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 z-[80] transition-colors"
+            className="absolute right-6 top-6 p-2.5 rounded-lg bg-gray-800/80 text-gray-400 hover:text-white hover:bg-gray-700 z-[80] transition-all border-2 border-gray-700/50"
           >
             <X className="w-5 h-5" />
           </button>
 
           <div className="h-[calc(90vh-80px)] relative flex">
             {/* Video Preview Area - Left Side */}
-            <div className="flex-1 p-6 flex items-center justify-center">
-              <div className="relative w-full max-w-5xl h-[500px] bg-gray-800/50 rounded-xl overflow-hidden">
+            <div className="flex-1 p-8 pb-24 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-900/50">
+              <div className="relative w-full max-w-5xl h-[500px] bg-gray-800/80 rounded-2xl overflow-hidden border-2 border-gray-700/50 shadow-2xl">
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center h-full gap-3">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -820,7 +822,7 @@ function SubtitleStyleModal({
                             <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                             <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
                           </div>
-                          <span className="text-sm text-gray-400">preview_player.mp4</span>
+                          <span className="text-sm text-gray-400">Subtitle Preview</span>
                         </div>
                       </div>
 
@@ -853,7 +855,7 @@ function SubtitleStyleModal({
                       </div>
 
                       {/* Video Player Controls */}
-                      <div className="p-4 bg-gradient-to-t from-black/50 to-transparent">
+                      <div className="p-4 bg-gradient-to-t from-black/80 to-transparent border-t border-gray-700/20">
                         <div className="space-y-2">
                           <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
                             <div className="w-1/3 h-full bg-blue-500"></div>
@@ -877,153 +879,196 @@ function SubtitleStyleModal({
             </div>
 
             {/* Styling Controls - Right Side */}
-            <div className="w-[400px] flex flex-col border-l border-white/10 bg-gray-900/95 backdrop-blur-xl">
-              <div className="flex-1 overflow-y-auto p-6">
+            <div className="w-[420px] flex flex-col border-l-2 border-gray-800 bg-gray-900/95">
+              <div className="flex-1 overflow-y-auto p-8">
                 <div className="space-y-8">
                   {/* Font Settings */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-200">Font Settings</h4>
+                  <div className="space-y-6">
+                    <div className="pb-2 border-b-2 border-blue-500/20">
+                      <h4 className="text-lg font-medium text-gray-200 flex items-center gap-3">
+                        <span className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                          <Type className="w-5 h-5 text-blue-400" />
+                        </span>
+                        Font Settings
+                      </h4>
+                    </div>
                     
-                    <div className="space-y-2">
-                      <label className="text-sm text-gray-400">Font Size</label>
-                      <div className="flex gap-2">
-                        {['small', 'medium', 'large'].map((size) => (
-                          <button
-                            key={size}
-                            onClick={() => setStyle({ ...style, fontSize: size as any })}
-                            className={cn(
-                              "flex-1 px-3 py-2 rounded-md border text-sm font-medium transition-all",
-                              style.fontSize === size
-                                ? "border-blue-500 bg-blue-500/20 text-blue-400"
-                                : "border-white/10 hover:border-white/20 text-gray-300"
-                            )}
-                          >
-                            {size.charAt(0).toUpperCase() + size.slice(1)}
-                          </button>
-                        ))}
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-400">Font Size</label>
+                        <div className="grid grid-cols-3 gap-3">
+                          {['small', 'medium', 'large'].map((size) => (
+                            <button
+                              key={size}
+                              onClick={() => setStyle({ ...style, fontSize: size as any })}
+                              className={cn(
+                                "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all",
+                                style.fontSize === size
+                                  ? "border-blue-500/50 bg-blue-500/10 text-blue-400"
+                                  : "border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                              )}
+                            >
+                              {size.charAt(0).toUpperCase() + size.slice(1)}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <label className="text-sm text-gray-400">Font Family</label>
-                      <select
-                        value={style.fontFamily}
-                        onChange={(e) => setStyle({ ...style, fontFamily: e.target.value })}
-                        className="w-full bg-gray-800 border border-white/10 rounded-md px-3 py-2 text-gray-200"
-                      >
-                        <option value="Arial">Arial</option>
-                        <option value="Helvetica">Helvetica</option>
-                        <option value="Times New Roman">Times New Roman</option>
-                        <option value="Courier New">Courier New</option>
-                      </select>
-                    </div>
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-400">Font Family</label>
+                        <select
+                          value={style.fontFamily}
+                          onChange={(e) => setStyle({ ...style, fontFamily: e.target.value })}
+                          className="w-full bg-gray-800/80 border-2 border-gray-700/50 rounded-lg px-4 py-3 text-gray-200 focus:border-blue-500/50 focus:ring-0 transition-colors"
+                        >
+                          <option value="Arial">Arial</option>
+                          <option value="Helvetica">Helvetica</option>
+                          <option value="Times New Roman">Times New Roman</option>
+                          <option value="Courier New">Courier New</option>
+                        </select>
+                      </div>
 
-                    <div className="flex gap-4">
-                      <button
-                        onClick={() => setStyle({ 
-                          ...style, 
-                          fontWeight: style.fontWeight === 'bold' ? 'normal' : 'bold' 
-                        })}
-                        className={cn(
-                          "flex-1 px-3 py-2 rounded-md border text-sm font-medium transition-all",
-                          style.fontWeight === 'bold'
-                            ? "border-blue-500 bg-blue-500/20 text-blue-400"
-                            : "border-white/10 hover:border-white/20 text-gray-300"
-                        )}
-                      >
-                        Bold
-                      </button>
-                      <button
-                        onClick={() => setStyle({ 
-                          ...style, 
-                          fontStyle: style.fontStyle === 'italic' ? 'normal' : 'italic' 
-                        })}
-                        className={cn(
-                          "flex-1 px-3 py-2 rounded-md border text-sm font-medium transition-all",
-                          style.fontStyle === 'italic'
-                            ? "border-blue-500 bg-blue-500/20 text-blue-400"
-                            : "border-white/10 hover:border-white/20 text-gray-300"
-                        )}
-                      >
-                        Italic
-                      </button>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={() => setStyle({ 
+                            ...style, 
+                            fontWeight: style.fontWeight === 'bold' ? 'normal' : 'bold' 
+                          })}
+                          className={cn(
+                            "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2",
+                            style.fontWeight === 'bold'
+                              ? "border-purple-500/50 bg-purple-500/10 text-purple-400"
+                              : "border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                          )}
+                        >
+                          <Bold className="w-4 h-4" />
+                          Bold
+                        </button>
+                        <button
+                          onClick={() => setStyle({ 
+                            ...style, 
+                            fontStyle: style.fontStyle === 'italic' ? 'normal' : 'italic' 
+                          })}
+                          className={cn(
+                            "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2",
+                            style.fontStyle === 'italic'
+                              ? "border-purple-500/50 bg-purple-500/10 text-purple-400"
+                              : "border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                          )}
+                        >
+                          <Italic className="w-4 h-4" />
+                          Italic
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Color Settings */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-200">Color & Style</h4>
+                  {/* Color & Style section */}
+                  <div className="space-y-6">
+                    <div className="pb-2 border-b-2 border-purple-500/20">
+                      <h4 className="text-lg font-medium text-gray-200 flex items-center gap-3">
+                        <span className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                          <Palette className="w-5 h-5 text-purple-400" />
+                        </span>
+                        Color & Style
+                      </h4>
+                    </div>
                     
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm text-gray-400 block mb-2">Text Color</label>
-                        <div className="flex gap-4 items-center">
-                          <div className="flex-1">
+                    <div className="space-y-6">
+                      {/* Combined Color Selection */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Text Color */}
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-gray-400">Text</label>
+                          <div className="relative group">
                             <input
                               type="color"
                               value={style.color}
                               onChange={(e) => setStyle({ ...style, color: e.target.value })}
-                              className="w-full h-10 rounded-md cursor-pointer"
+                              className="sr-only"
+                              id="textColor"
                             />
+                            <label
+                              htmlFor="textColor"
+                              className="block h-12 rounded-lg cursor-pointer border-2 border-gray-700/50 hover:border-gray-600 transition-all overflow-hidden"
+                              style={{ backgroundColor: style.color }}
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </label>
                           </div>
-                          <div className="w-20 h-10 rounded-md border border-white/10" style={{ backgroundColor: style.color }} />
                         </div>
-                      </div>
 
-                      <div>
-                        <label className="text-sm text-gray-400 block mb-2">Background Color</label>
-                        <div className="flex gap-4 items-center">
-                          <div className="flex-1">
+                        {/* Background Color */}
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-gray-400">Background</label>
+                          <div className="relative group">
                             <input
                               type="color"
                               value={style.backgroundColor}
                               onChange={(e) => setStyle({ ...style, backgroundColor: e.target.value })}
-                              className="w-full h-10 rounded-md cursor-pointer"
+                              className="sr-only"
+                              id="bgColor"
                             />
+                            <label
+                              htmlFor="bgColor"
+                              className="block h-12 rounded-lg cursor-pointer border-2 border-gray-700/50 hover:border-gray-600 transition-all overflow-hidden"
+                              style={{ backgroundColor: style.backgroundColor }}
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </label>
                           </div>
-                          <div className="w-20 h-10 rounded-md border border-white/10" style={{ backgroundColor: style.backgroundColor }} />
                         </div>
                       </div>
 
-                      <div>
-                        <label className="text-sm text-gray-400 block mb-2">Background Opacity</label>
-                        <div className="flex gap-4 items-center">
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            value={style.opacity}
-                            onChange={(e) => setStyle({ ...style, opacity: parseFloat(e.target.value) })}
-                            className="flex-1"
-                          />
-                          <span className="text-sm text-gray-400 w-12 text-right">{Math.round(style.opacity * 100)}%</span>
+                      {/* Background Opacity */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium text-gray-400">Background Opacity</label>
+                          <span className="text-sm text-gray-500">{Math.round(style.opacity * 100)}%</span>
                         </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={style.opacity}
+                          onChange={(e) => setStyle({ ...style, opacity: parseFloat(e.target.value) })}
+                          className="w-full accent-purple-500"
+                        />
                       </div>
                     </div>
                   </div>
 
                   {/* Position Settings */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-200">Position</h4>
+                  <div className="space-y-6">
+                    <div className="pb-2 border-b-2 border-emerald-500/20">
+                      <h4 className="text-lg font-medium text-gray-200 flex items-center gap-3">
+                        <span className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                          <ArrowUpDown className="w-5 h-5 text-emerald-400" />
+                        </span>
+                        Position
+                      </h4>
+                    </div>
                     
-                    <div className="space-y-2">
-                      <label className="text-sm text-gray-400">Vertical Position</label>
-                      <div className="flex gap-2">
-                        {['top', 'bottom'].map((pos) => (
-                          <button
-                            key={pos}
-                            onClick={() => setStyle({ ...style, position: pos as any })}
-                            className={cn(
-                              "flex-1 px-3 py-2 rounded-md border text-sm font-medium transition-all",
-                              style.position === pos
-                                ? "border-blue-500 bg-blue-500/20 text-blue-400"
-                                : "border-white/10 hover:border-white/20 text-gray-300"
-                            )}
-                          >
-                            {pos.charAt(0).toUpperCase() + pos.slice(1)}
-                          </button>
-                        ))}
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-400">Vertical Position</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          {['top', 'bottom'].map((pos) => (
+                            <button
+                              key={pos}
+                              onClick={() => setStyle({ ...style, position: pos as any })}
+                              className={cn(
+                                "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all",
+                                style.position === pos
+                                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                                  : "border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                              )}
+                            >
+                              {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1031,21 +1076,42 @@ function SubtitleStyleModal({
               </div>
 
               {/* Action Buttons */}
-              <div className="p-6 border-t border-white/10">
-                <div className="flex gap-4">
+              <div className="p-8 pt-6 pb-12 border-t-2 border-gray-800 bg-gray-900/90">
+                <div className="flex flex-col gap-4">
+                  {/* Copy JSON Button */}
                   <Button
                     variant="outline"
-                    className="flex-1 border-white/10 hover:border-white/20 text-gray-300"
-                    onClick={onClose}
+                    className="w-full border-2 border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50 flex items-center justify-center gap-2 group relative"
+                    onClick={() => {
+                      const styleJson = JSON.stringify(style, null, 2);
+                      navigator.clipboard.writeText(styleJson);
+                      toast.success("Style settings copied to clipboard!");
+                    }}
                   >
-                    Cancel
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-800/0 via-gray-800/5 to-gray-800/0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                    <span className="relative flex items-center gap-2">
+                      <Palette className="w-4 h-4 text-purple-400" />
+                      Copy Style JSON
+                    </span>
                   </Button>
-                  <Button
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
-                    onClick={() => onSave(style)}
-                  >
-                    Save Style
-                  </Button>
+                  
+                  {/* Main Action Buttons */}
+                  <div className="flex gap-4">
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-2 border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                      onClick={onClose}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0 relative group"
+                      onClick={() => onSave(style)}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                      <span className="relative">Save Style</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1634,7 +1700,7 @@ export function DashboardOverview() {
                     {/* Add Customize Subtitle Style Button */}
                     <Button
                       variant="outline"
-                      className="w-full mt-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                      className="w-full mt-4 bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group relative overflow-hidden"
                       onClick={() => {
                         // Create object URL for video preview
                         const videoUrl = URL.createObjectURL(selectedFile);
@@ -1642,8 +1708,9 @@ export function DashboardOverview() {
                         setShowStyleModal(true);
                       }}
                     >
-                      <Palette className="w-4 h-4 mr-2" />
-                      Customize Subtitle Style
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <Palette className="w-4 h-4 text-blue-500 group-hover:text-blue-600 transition-colors" />
+                      <span className="relative">Customize Subtitle Style</span>
                     </Button>
                   </div>
                 </div>
