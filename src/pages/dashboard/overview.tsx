@@ -16,7 +16,10 @@ import {
   Timer,
   DollarSign,
   X,
-  Subtitles
+  Subtitles,
+  Palette,
+  Bold,
+  Italic
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { videos, subtitles, users, type Video, type Subtitle, type UserDetails, type SupportedLanguageType } from '@/lib/api-client';
@@ -44,6 +47,7 @@ import {
 import toast from 'react-hot-toast';
 import { useUserDetails } from '@/hooks/use-user-details';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en' as SupportedLanguageType, name: 'English' },
@@ -58,6 +62,18 @@ const SUPPORTED_LANGUAGES = [
   { code: 'ko' as SupportedLanguageType, name: 'Korean' },
   { code: 'pt' as SupportedLanguageType, name: 'Portuguese' }
 ] as const;
+
+interface SubtitleStyle {
+  fontSize: 'small' | 'medium' | 'large';
+  fontFamily: string;
+  fontWeight: 'normal' | 'bold';
+  fontStyle: 'normal' | 'italic';
+  color: string;
+  backgroundColor: string;
+  position: 'bottom' | 'top';
+  alignment: 'left' | 'center' | 'right';
+  opacity: number;
+}
 
 function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: { 
   video: Video; 
@@ -653,6 +669,406 @@ function VideoCardSkeleton() {
   );
 }
 
+function SubtitleStyleModal({ 
+  videoUrl, 
+  onClose,
+  onSave 
+}: { 
+  videoUrl: string;
+  onClose: () => void;
+  onSave: (style: SubtitleStyle) => void;
+}) {
+  const [style, setStyle] = useState<SubtitleStyle>({
+    fontSize: 'medium',
+    fontFamily: 'Arial',
+    fontWeight: 'normal',
+    fontStyle: 'normal',
+    color: '#FFFFFF',
+    backgroundColor: '#000000',
+    position: 'bottom',
+    alignment: 'center',
+    opacity: 0.8
+  });
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Sample text with multiple examples
+  const sampleText = [
+    "Welcome to my video presentation",
+    "This is how your subtitles will look",
+    "You can adjust the style to match your needs",
+    "Try different positions and colors!"
+  ];
+  const [currentTextIndex, setCurrentTextIndex] = useState(0);
+
+  // Rotate through sample text
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTextIndex((prev) => (prev + 1) % sampleText.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.preload = 'metadata';
+    
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        setLoadError('Preview generation timed out. Using default preview.');
+        setIsLoading(false);
+      }
+    }, 3000);
+
+    const handleLoad = () => {
+      setIsLoading(false);
+      clearTimeout(timeoutId);
+    };
+
+    const handleError = () => {
+      setLoadError('Failed to load video preview. Using default preview.');
+      setIsLoading(false);
+      clearTimeout(timeoutId);
+    };
+
+    video.addEventListener('loadeddata', handleLoad);
+    video.addEventListener('error', handleError);
+    video.src = videoUrl;
+
+    return () => {
+      video.removeEventListener('loadeddata', handleLoad);
+      video.removeEventListener('error', handleError);
+      clearTimeout(timeoutId);
+    };
+  }, [videoUrl]);
+
+  const getSubtitleStyle = () => {
+    const baseStyle = {
+      fontFamily: style.fontFamily,
+      fontSize: {
+        small: '16px',
+        medium: '24px',
+        large: '32px'
+      }[style.fontSize],
+      fontWeight: style.fontWeight,
+      fontStyle: style.fontStyle,
+      color: style.color,
+      backgroundColor: `${style.backgroundColor}${Math.round(style.opacity * 255).toString(16).padStart(2, '0')}`,
+      padding: '12px 24px',
+      borderRadius: '8px',
+      maxWidth: '90%',
+      textAlign: style.alignment as 'left' | 'center' | 'right',
+      transition: 'all 0.3s ease',
+      textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+      whiteSpace: 'pre-line',
+      width: 'fit-content',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+      zIndex: 10,
+      margin: '0 auto'
+    };
+
+    return baseStyle;
+  };
+
+  return (
+    <>
+      {/* Backdrop Overlay */}
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[65]" />
+      
+      <Dialog open onOpenChange={onClose} modal>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-gray-900 z-[70] overflow-hidden">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="text-xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Customize Subtitle Style
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Preview and adjust how your subtitles will appear in the video
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 p-2 rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 z-[80] transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <div className="h-[calc(90vh-80px)] relative flex">
+            {/* Video Preview Area - Left Side */}
+            <div className="flex-1 p-6 flex items-center justify-center">
+              <div className="relative w-full max-w-5xl h-[500px] bg-gray-800/50 rounded-xl overflow-hidden">
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                    <p className="text-sm text-gray-400">Loading preview...</p>
+                  </div>
+                ) : (
+                  <div className="relative w-full h-full">
+                    {/* Mock Video Player */}
+                    <div className="absolute inset-0 flex flex-col">
+                      {/* Video Player Header */}
+                      <div className="p-4 bg-gradient-to-b from-black/50 to-transparent">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+                          </div>
+                          <span className="text-sm text-gray-400">preview_player.mp4</span>
+                        </div>
+                      </div>
+
+                      {/* Video Content Area */}
+                      <div className="flex-1 relative">
+                        {/* Video Thumbnail/Frame */}
+                        <video
+                          ref={videoRef}
+                          src={videoUrl}
+                          className="absolute inset-0 w-full h-full object-cover bg-black"
+                          poster="/video-placeholder.jpg"
+                          crossOrigin="anonymous"
+                        />
+                        <div className="absolute inset-0 bg-black/50" />
+
+                        {/* Subtitle Preview Container */}
+                        <div className={cn(
+                          "absolute left-0 right-0 px-8",
+                          style.position === 'bottom' ? 'bottom-[15%]' : 'top-[15%]'
+                        )}>
+                          <div className="w-full flex justify-center">
+                            <div
+                              style={getSubtitleStyle()}
+                              className="animate-fade-in"
+                            >
+                              {sampleText[currentTextIndex]}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Video Player Controls */}
+                      <div className="p-4 bg-gradient-to-t from-black/50 to-transparent">
+                        <div className="space-y-2">
+                          <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+                            <div className="w-1/3 h-full bg-blue-500"></div>
+                          </div>
+                          <div className="flex items-center justify-between text-sm text-gray-400">
+                            <span>0:42</span>
+                            <span>2:15</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {loadError && (
+                      <div className="absolute top-4 left-4 right-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <p className="text-sm text-red-400">{loadError}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Styling Controls - Right Side */}
+            <div className="w-[400px] flex flex-col border-l border-white/10 bg-gray-900/95 backdrop-blur-xl">
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-8">
+                  {/* Font Settings */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-200">Font Settings</h4>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm text-gray-400">Font Size</label>
+                      <div className="flex gap-2">
+                        {['small', 'medium', 'large'].map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => setStyle({ ...style, fontSize: size as any })}
+                            className={cn(
+                              "flex-1 px-3 py-2 rounded-md border text-sm font-medium transition-all",
+                              style.fontSize === size
+                                ? "border-blue-500 bg-blue-500/20 text-blue-400"
+                                : "border-white/10 hover:border-white/20 text-gray-300"
+                            )}
+                          >
+                            {size.charAt(0).toUpperCase() + size.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm text-gray-400">Font Family</label>
+                      <select
+                        value={style.fontFamily}
+                        onChange={(e) => setStyle({ ...style, fontFamily: e.target.value })}
+                        className="w-full bg-gray-800 border border-white/10 rounded-md px-3 py-2 text-gray-200"
+                      >
+                        <option value="Arial">Arial</option>
+                        <option value="Helvetica">Helvetica</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Courier New">Courier New</option>
+                      </select>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setStyle({ 
+                          ...style, 
+                          fontWeight: style.fontWeight === 'bold' ? 'normal' : 'bold' 
+                        })}
+                        className={cn(
+                          "flex-1 px-3 py-2 rounded-md border text-sm font-medium transition-all",
+                          style.fontWeight === 'bold'
+                            ? "border-blue-500 bg-blue-500/20 text-blue-400"
+                            : "border-white/10 hover:border-white/20 text-gray-300"
+                        )}
+                      >
+                        Bold
+                      </button>
+                      <button
+                        onClick={() => setStyle({ 
+                          ...style, 
+                          fontStyle: style.fontStyle === 'italic' ? 'normal' : 'italic' 
+                        })}
+                        className={cn(
+                          "flex-1 px-3 py-2 rounded-md border text-sm font-medium transition-all",
+                          style.fontStyle === 'italic'
+                            ? "border-blue-500 bg-blue-500/20 text-blue-400"
+                            : "border-white/10 hover:border-white/20 text-gray-300"
+                        )}
+                      >
+                        Italic
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Color Settings */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-200">Color & Style</h4>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm text-gray-400 block mb-2">Text Color</label>
+                        <div className="flex gap-4 items-center">
+                          <div className="flex-1">
+                            <input
+                              type="color"
+                              value={style.color}
+                              onChange={(e) => setStyle({ ...style, color: e.target.value })}
+                              className="w-full h-10 rounded-md cursor-pointer"
+                            />
+                          </div>
+                          <div className="w-20 h-10 rounded-md border border-white/10" style={{ backgroundColor: style.color }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-sm text-gray-400 block mb-2">Background Color</label>
+                        <div className="flex gap-4 items-center">
+                          <div className="flex-1">
+                            <input
+                              type="color"
+                              value={style.backgroundColor}
+                              onChange={(e) => setStyle({ ...style, backgroundColor: e.target.value })}
+                              className="w-full h-10 rounded-md cursor-pointer"
+                            />
+                          </div>
+                          <div className="w-20 h-10 rounded-md border border-white/10" style={{ backgroundColor: style.backgroundColor }} />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-sm text-gray-400 block mb-2">Background Opacity</label>
+                        <div className="flex gap-4 items-center">
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.1"
+                            value={style.opacity}
+                            onChange={(e) => setStyle({ ...style, opacity: parseFloat(e.target.value) })}
+                            className="flex-1"
+                          />
+                          <span className="text-sm text-gray-400 w-12 text-right">{Math.round(style.opacity * 100)}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Position Settings */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-200">Position</h4>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm text-gray-400">Vertical Position</label>
+                      <div className="flex gap-2">
+                        {['top', 'bottom'].map((pos) => (
+                          <button
+                            key={pos}
+                            onClick={() => setStyle({ ...style, position: pos as any })}
+                            className={cn(
+                              "flex-1 px-3 py-2 rounded-md border text-sm font-medium transition-all",
+                              style.position === pos
+                                ? "border-blue-500 bg-blue-500/20 text-blue-400"
+                                : "border-white/10 hover:border-white/20 text-gray-300"
+                            )}
+                          >
+                            {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="p-6 border-t border-white/10">
+                <div className="flex gap-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-white/10 hover:border-white/20 text-gray-300"
+                    onClick={onClose}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
+                    onClick={() => onSave(style)}
+                  >
+                    Save Style
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// Add this CSS animation
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
+  }
+`;
+document.head.appendChild(styleSheet);
+
 export function DashboardOverview() {
   const { user } = useAuth();
   const [videoList, setVideoList] = useState<Video[]>([]);
@@ -666,6 +1082,9 @@ export function DashboardOverview() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [enableDubbing, setEnableDubbing] = useState(false);
   const [showLanguageTooltip, setShowLanguageTooltip] = useState(false);
+  const [showStyleModal, setShowStyleModal] = useState(false);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle | null>(null);
 
   const fetchVideos = async () => {
     try {
@@ -1078,6 +1497,15 @@ export function DashboardOverview() {
     ));
   };
 
+  // Handle style save
+  const handleStyleSave = async (style: SubtitleStyle) => {
+    setSubtitleStyle(style);
+    setShowStyleModal(false);
+    
+    // TODO: Store style in API once endpoint is available
+    toast.success("Subtitle style saved successfully!");
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -1127,6 +1555,7 @@ export function DashboardOverview() {
             setEnableDubbing(false);
             setShowLanguageTooltip(false);
             setIsUploading(false);
+            setVideoPreviewUrl(null);
             if (fileInputRef.current) {
               fileInputRef.current.value = '';
             }
@@ -1134,7 +1563,7 @@ export function DashboardOverview() {
           setIsUploadModalOpen(open);
         }}
       >
-        <DialogContent className="sm:max-w-[425px] z-[100] bg-white">
+        <DialogContent className="sm:max-w-[425px] z-[60] bg-white">
           <DialogHeader>
             <DialogTitle>Upload Video</DialogTitle>
             <DialogDescription className="space-y-2 mt-6">
@@ -1198,13 +1627,24 @@ export function DashboardOverview() {
                           <span className="text-sm text-blue-600 font-medium">
                             {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                           </span>
-                          <span className="w-1 h-1 rounded-full bg-gray-300" />
-                          <span className="text-sm text-gray-500">
-                            Ready to upload
-                          </span>
                         </div>
                       </div>
                     </div>
+
+                    {/* Add Customize Subtitle Style Button */}
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 border-0 shadow-md hover:shadow-lg transition-all duration-300"
+                      onClick={() => {
+                        // Create object URL for video preview
+                        const videoUrl = URL.createObjectURL(selectedFile);
+                        setVideoPreviewUrl(videoUrl);
+                        setShowStyleModal(true);
+                      }}
+                    >
+                      <Palette className="w-4 h-4 mr-2" />
+                      Customize Subtitle Style
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1347,6 +1787,19 @@ export function DashboardOverview() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Subtitle Style Modal */}
+      {showStyleModal && videoPreviewUrl && (
+        <SubtitleStyleModal
+          videoUrl={videoPreviewUrl}
+          onClose={() => {
+            setShowStyleModal(false);
+            URL.revokeObjectURL(videoPreviewUrl);
+            setVideoPreviewUrl(null);
+          }}
+          onSave={handleStyleSave}
+        />
+      )}
 
       {error && (
         <div className="mb-8 p-4 text-sm text-red-600 bg-red-50 rounded-lg">

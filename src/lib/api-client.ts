@@ -70,6 +70,7 @@ export interface VideoListResponse {
 export interface VideoUploadRequest {
   file: File;
   language: string;
+  subtitleStyle?: SubtitleStyle;
 }
 
 export interface VideoUploadResponse {
@@ -165,6 +166,24 @@ export interface UserDetails {
   updated_at: string | null;
 }
 
+export interface SubtitleStyle {
+  fontSize: 'small' | 'medium' | 'large';
+  fontFamily: string;
+  fontWeight: 'normal' | 'bold';
+  fontStyle: 'normal' | 'italic';
+  color: string;
+  backgroundColor: string;
+  position: 'bottom' | 'top';
+  alignment: 'left' | 'center' | 'right';
+  opacity: number;
+}
+
+export interface SubtitleStyleResponse {
+  message: string;
+  video_uuid: string;
+  style: SubtitleStyle;
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -213,10 +232,13 @@ export const videos = {
     return response.data;
   },
 
-  async upload({ file, language }: VideoUploadRequest): Promise<VideoUploadResponse> {
+  async upload({ file, language, subtitleStyle }: VideoUploadRequest): Promise<VideoUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('language', language);
+    if (subtitleStyle) {
+      formData.append('subtitle_style', JSON.stringify(subtitleStyle));
+    }
 
     const response = await apiClient.post('/videos/upload', formData, {
       headers: {
@@ -234,11 +256,17 @@ export const videos = {
   async generateSubtitles(
     videoUuid: string,
     language: string,
-    options?: { enable_dubbing?: boolean }
+    options?: { 
+      enable_dubbing?: boolean;
+      subtitleStyle?: SubtitleStyle;
+    }
   ): Promise<SubtitleGenerationResponse> {
     const response = await apiClient.post(
       `/videos/${videoUuid}/generate_subtitles`,
-      { enable_dubbing: options?.enable_dubbing || false }
+      { 
+        enable_dubbing: options?.enable_dubbing || false,
+        subtitle_style: options?.subtitleStyle
+      }
     );
     return response.data;
   },
@@ -280,6 +308,17 @@ export const videos = {
     const response = await apiClient.post(
       `/videos/${videoUuid}/burn_subtitles`,
       { subtitle_uuid: subtitleUuid }
+    );
+    return response.data;
+  },
+
+  async saveSubtitleStyle(
+    videoUuid: string, 
+    style: SubtitleStyle
+  ): Promise<SubtitleStyleResponse> {
+    const response = await apiClient.post(
+      `/videos/${videoUuid}/subtitle-style`,
+      { style }
     );
     return response.data;
   },
