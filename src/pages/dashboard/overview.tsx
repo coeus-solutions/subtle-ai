@@ -801,28 +801,25 @@ function SubtitleStyleModal({
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[65]" />
       
       <Dialog open onOpenChange={onClose} modal>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-gray-900/95 backdrop-blur-xl z-[70] overflow-hidden border-2 border-gray-800 rounded-xl">
-          <DialogHeader className="p-8 pb-0">
-            <DialogTitle className="text-2xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Customize Subtitle Style
-            </DialogTitle>
-            <DialogDescription className="text-gray-400 mt-2">
-              Preview and adjust how your subtitles will appear in the video
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute right-6 top-6 p-2.5 rounded-lg bg-gray-800/80 text-gray-400 hover:text-white hover:bg-gray-700 z-[80] transition-all border-2 border-gray-700/50"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          <div className="h-[calc(90vh-80px)] relative flex">
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-white backdrop-blur-xl z-[70] overflow-hidden border border-gray-200 rounded-xl shadow-xl">
+          <div className="flex h-[calc(90vh-0px)]">
             {/* Video Preview Area - Left Side */}
-            <div className="flex-1 p-8 pb-24 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-900/50">
-              <div className="relative w-full max-w-5xl h-[500px] bg-gray-800/80 rounded-2xl overflow-hidden border-2 border-gray-700/50 shadow-2xl">
+            <div className="flex-1 p-8 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white relative">
+              {/* Header with Close Button */}
+              <div className="absolute top-0 left-0 right-0 p-8 pb-6">
+                <div className="relative">
+                  <div className="flex flex-col gap-2 pb-6 border-b border-gray-200">
+                    <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      Customize Subtitle Style
+                    </h2>
+                    <p className="text-gray-600">
+                      Preview and adjust how your subtitles will appear in the video
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative w-full max-w-5xl h-[500px] bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 shadow-xl mt-[70px]">
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center h-full gap-3">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -833,14 +830,19 @@ function SubtitleStyleModal({
                     {/* Mock Video Player */}
                     <div className="absolute inset-0 flex flex-col">
                       {/* Video Player Header */}
-                      <div className="p-4 bg-gradient-to-b from-black/50 to-transparent">
-                        <div className="flex items-center gap-2">
-                          <div className="flex gap-1.5">
-                            <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-                            <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                            <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
+                      <div className="p-4 bg-gradient-to-b from-gray-900/90 to-transparent backdrop-blur-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-1.5">
+                              <div className="w-3 h-3 rounded-full bg-red-500/90"></div>
+                              <div className="w-3 h-3 rounded-full bg-yellow-500/90"></div>
+                              <div className="w-3 h-3 rounded-full bg-green-500/90"></div>
+                            </div>
+                            <span className="text-sm text-gray-300">Subtitle Preview</span>
                           </div>
-                          <span className="text-sm text-gray-400">Subtitle Preview</span>
+                          <div className="px-2 py-1 rounded-md bg-gray-800/50 backdrop-blur-sm border border-gray-700/30">
+                            <span className="text-xs text-gray-300">Preview Mode</span>
+                          </div>
                         </div>
                       </div>
 
@@ -854,7 +856,7 @@ function SubtitleStyleModal({
                           poster="/video-placeholder.jpg"
                           crossOrigin="anonymous"
                         />
-                        <div className="absolute inset-0 bg-black/50" />
+                        <div className="absolute inset-0 bg-black/40" />
 
                         {/* Subtitle Preview Container */}
                         <div className={cn(
@@ -863,7 +865,7 @@ function SubtitleStyleModal({
                         )}>
                           <div
                             style={getSubtitleStyle()}
-                            className="animate-fade-in mx-auto"
+                            className="animate-fade-in mx-auto backdrop-blur-sm bg-black/30 shadow-lg"
                           >
                             {sampleText[currentTextIndex]}
                           </div>
@@ -871,22 +873,30 @@ function SubtitleStyleModal({
                       </div>
 
                       {/* Video Player Controls */}
-                      <div className="p-4 bg-gradient-to-t from-black/80 to-transparent border-t border-gray-700/20">
+                      <div className="p-4 bg-gradient-to-t from-gray-900/90 via-gray-900/50 to-transparent backdrop-blur-sm border-t border-gray-700/20">
                         <div className="space-y-2">
-                          <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
-                            <div className="w-1/3 h-full bg-blue-500"></div>
+                          <div className="h-1.5 bg-gray-700/50 rounded-full overflow-hidden backdrop-blur-sm">
+                            <div className="w-1/3 h-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
                           </div>
-                          <div className="flex items-center justify-between text-sm text-gray-400">
-                            <span>0:42</span>
-                            <span>2:15</span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm text-gray-300">0:42</span>
+                              <div className="h-4 w-px bg-gray-700/50"></div>
+                              <span className="text-sm text-gray-400">2:15</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="px-2 py-1 rounded-md bg-gray-800/50 backdrop-blur-sm border border-gray-700/30">
+                                <span className="text-xs text-gray-300">HD 1080p</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     {loadError && (
-                      <div className="absolute top-4 left-4 right-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                        <p className="text-sm text-red-400">{loadError}</p>
+                      <div className="absolute top-4 left-4 right-4 p-3 bg-red-100 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-600">{loadError}</p>
                       </div>
                     )}
                   </div>
@@ -895,15 +905,15 @@ function SubtitleStyleModal({
             </div>
 
             {/* Styling Controls - Right Side */}
-            <div className="w-[420px] flex flex-col border-l-2 border-gray-800 bg-gray-900/95">
-              <div className="flex-1 overflow-y-auto p-8">
-                <div className="space-y-8">
+            <div className="w-[420px] flex flex-col border-l border-gray-200 bg-gray-50">
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-6">
                   {/* Font Settings */}
                   <div className="space-y-6">
-                    <div className="pb-2 border-b-2 border-blue-500/20">
-                      <h4 className="text-lg font-medium text-gray-200 flex items-center gap-3">
-                        <span className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                          <Type className="w-5 h-5 text-blue-400" />
+                    <div className="pb-2 border-b-2 border-blue-100">
+                      <h4 className="text-lg font-medium text-gray-800 flex items-center gap-3">
+                        <span className="p-2.5 rounded-lg bg-blue-50 border border-blue-100">
+                          <Type className="w-5 h-5 text-blue-600" />
                         </span>
                         Font Settings
                       </h4>
@@ -911,7 +921,7 @@ function SubtitleStyleModal({
                     
                     <div className="space-y-4">
                       <div className="space-y-3">
-                        <label className="text-sm font-medium text-gray-400">Font Size</label>
+                        <label className="text-sm font-medium text-gray-700">Font Size</label>
                         <div className="grid grid-cols-3 gap-3">
                           {['small', 'medium', 'large'].map((size) => (
                             <button
@@ -920,8 +930,8 @@ function SubtitleStyleModal({
                               className={cn(
                                 "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all",
                                 style.fontSize === size
-                                  ? "border-blue-500/50 bg-blue-500/10 text-blue-400"
-                                  : "border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                                  ? "border-blue-500 bg-blue-50 text-blue-700"
+                                  : "border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50"
                               )}
                             >
                               {size.charAt(0).toUpperCase() + size.slice(1)}
@@ -939,8 +949,8 @@ function SubtitleStyleModal({
                           className={cn(
                             "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2",
                             style.fontWeight === 'bold'
-                              ? "border-purple-500/50 bg-purple-500/10 text-purple-400"
-                              : "border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                              ? "border-purple-500 bg-purple-50 text-purple-700"
+                              : "border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50"
                           )}
                         >
                           <Bold className="w-4 h-4" />
@@ -954,8 +964,8 @@ function SubtitleStyleModal({
                           className={cn(
                             "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all flex items-center justify-center gap-2",
                             style.fontStyle === 'italic'
-                              ? "border-purple-500/50 bg-purple-500/10 text-purple-400"
-                              : "border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                              ? "border-purple-500 bg-purple-50 text-purple-700"
+                              : "border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50"
                           )}
                         >
                           <Italic className="w-4 h-4" />
@@ -966,43 +976,47 @@ function SubtitleStyleModal({
                   </div>
 
                   {/* Color Settings */}
-                  <div className="space-y-6">
-                    <div className="pb-2 border-b-2 border-purple-500/20">
-                      <h4 className="text-lg font-medium text-gray-200 flex items-center gap-3">
-                        <span className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                          <Palette className="w-5 h-5 text-purple-400" />
+                  <div className="space-y-6 mt-6">
+                    <div className="pb-2 border-b-2 border-purple-100">
+                      <h4 className="text-lg font-medium text-gray-800 flex items-center gap-3">
+                        <span className="p-2.5 rounded-lg bg-purple-50 border border-purple-100">
+                          <Palette className="w-5 h-5 text-purple-600" />
                         </span>
                         Color
                       </h4>
                     </div>
                     
                     <div className="space-y-3">
-                      <label className="text-sm font-medium text-gray-400">Text Color</label>
+                      <label className="text-sm font-medium text-gray-700">Text Color</label>
                       <div className="relative group">
                         <input
                           type="color"
+                          id="textColor"
                           value={style.color}
                           onChange={(e) => setStyle({ ...style, color: e.target.value })}
                           className="sr-only"
-                          id="textColor"
                         />
                         <label
                           htmlFor="textColor"
-                          className="block h-12 rounded-lg cursor-pointer border-2 border-gray-700/50 hover:border-gray-600 transition-all overflow-hidden"
+                          className="relative block h-12 rounded-lg cursor-pointer border-2 border-gray-200 hover:border-gray-300 transition-all overflow-hidden"
                           style={{ backgroundColor: style.color }}
                         >
-                          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute inset-0 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAABCSURBVDiNY/z//z8DJYCJgUIw8AawIHN+//6NVR7GxsZGlgEsyJxfv35hlQczXDSQCkYNGDVg1IBRA0YNGEIDAAKoEQ3p8T1rAAAAAElFTkSuQmCC')] opacity-20" />
+                          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute bottom-1 right-2 bg-white/90 px-2 py-0.5 rounded text-xs font-mono text-gray-600">
+                            {style.color.toUpperCase()}
+                          </div>
                         </label>
                       </div>
                     </div>
                   </div>
 
                   {/* Position Settings */}
-                  <div className="space-y-6">
-                    <div className="pb-2 border-b-2 border-emerald-500/20">
-                      <h4 className="text-lg font-medium text-gray-200 flex items-center gap-3">
-                        <span className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                          <ArrowUpDown className="w-5 h-5 text-emerald-400" />
+                  <div className="space-y-6 mt-6">
+                    <div className="pb-2 border-b-2 border-emerald-100">
+                      <h4 className="text-lg font-medium text-gray-800 flex items-center gap-3">
+                        <span className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-100">
+                          <ArrowUpDown className="w-5 h-5 text-emerald-600" />
                         </span>
                         Position
                       </h4>
@@ -1010,7 +1024,7 @@ function SubtitleStyleModal({
                     
                     <div className="space-y-4">
                       <div className="space-y-3">
-                        <label className="text-sm font-medium text-gray-400">Vertical Position</label>
+                        <label className="text-sm font-medium text-gray-700">Vertical Position</label>
                         <div className="grid grid-cols-2 gap-3">
                           {['top', 'bottom'].map((pos) => (
                             <button
@@ -1019,8 +1033,8 @@ function SubtitleStyleModal({
                               className={cn(
                                 "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all",
                                 style.position === pos
-                                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                                  : "border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                  : "border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50"
                               )}
                             >
                               {pos.charAt(0).toUpperCase() + pos.slice(1)}
@@ -1030,7 +1044,7 @@ function SubtitleStyleModal({
                       </div>
 
                       <div className="space-y-3">
-                        <label className="text-sm font-medium text-gray-400">Alignment</label>
+                        <label className="text-sm font-medium text-gray-700">Alignment</label>
                         <div className="grid grid-cols-3 gap-3">
                           {['left', 'center', 'right'].map((align) => (
                             <button
@@ -1039,8 +1053,8 @@ function SubtitleStyleModal({
                               className={cn(
                                 "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all",
                                 style.alignment === align
-                                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                                  : "border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                  : "border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50"
                               )}
                             >
                               {align.charAt(0).toUpperCase() + align.slice(1)}
@@ -1054,21 +1068,21 @@ function SubtitleStyleModal({
               </div>
 
               {/* Action Buttons */}
-              <div className="p-8 pt-6 pb-12 border-t-2 border-gray-800 bg-gray-900/90">
+              <div className="p-6 border-t border-gray-200 bg-white">
                 <div className="flex flex-col gap-4">
                   {/* Copy JSON Button */}
                   <Button
                     variant="outline"
-                    className="w-full border-2 border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50 flex items-center justify-center gap-2 group relative"
+                    className="w-full border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2 group relative"
                     onClick={() => {
                       const styleJson = JSON.stringify(style, null, 2);
                       navigator.clipboard.writeText(styleJson);
                       toast.success("Style settings copied to clipboard!");
                     }}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-gray-800/0 via-gray-800/5 to-gray-800/0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-50/0 via-gray-50/50 to-gray-50/0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
                     <span className="relative flex items-center gap-2">
-                      <Palette className="w-4 h-4 text-purple-400" />
+                      <Palette className="w-4 h-4 text-purple-600" />
                       Copy Style JSON
                     </span>
                   </Button>
@@ -1077,7 +1091,7 @@ function SubtitleStyleModal({
                   <div className="flex gap-4">
                     <Button
                       variant="outline"
-                      className="flex-1 border-2 border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                      className="flex-1 border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50"
                       onClick={onClose}
                     >
                       Cancel
