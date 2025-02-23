@@ -168,14 +168,11 @@ export interface UserDetails {
 
 export interface SubtitleStyle {
   fontSize: 'small' | 'medium' | 'large';
-  fontFamily: string;
   fontWeight: 'normal' | 'bold';
   fontStyle: 'normal' | 'italic';
   color: string;
-  backgroundColor: string;
   position: 'bottom' | 'top';
   alignment: 'left' | 'center' | 'right';
-  opacity: number;
 }
 
 export interface SubtitleStyleResponse {
@@ -237,7 +234,7 @@ export const videos = {
     formData.append('file', file);
     formData.append('language', language);
     if (subtitleStyle) {
-      formData.append('subtitle_style', JSON.stringify(subtitleStyle));
+      formData.append('subtitle_styles', JSON.stringify(subtitleStyle));
     }
 
     const response = await apiClient.post('/videos/upload', formData, {
@@ -264,8 +261,7 @@ export const videos = {
     const response = await apiClient.post(
       `/videos/${videoUuid}/generate_subtitles`,
       { 
-        enable_dubbing: options?.enable_dubbing || false,
-        subtitle_style: options?.subtitleStyle
+        enable_dubbing: options?.enable_dubbing || false
       }
     );
     return response.data;

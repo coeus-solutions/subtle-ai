@@ -24,7 +24,7 @@ import {
   Type
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import { videos, subtitles, users, type Video, type Subtitle, type UserDetails, type SupportedLanguageType } from '@/lib/api-client';
+import { videos, subtitles, users, type Video, type Subtitle, type UserDetails, type SupportedLanguageType, type VideoUploadResponse } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -67,14 +67,11 @@ const SUPPORTED_LANGUAGES = [
 
 interface SubtitleStyle {
   fontSize: 'small' | 'medium' | 'large';
-  fontFamily: string;
   fontWeight: 'normal' | 'bold';
   fontStyle: 'normal' | 'italic';
   color: string;
-  backgroundColor: string;
   position: 'bottom' | 'top';
   alignment: 'left' | 'center' | 'right';
-  opacity: number;
 }
 
 function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: { 
@@ -674,7 +671,7 @@ function VideoCardSkeleton() {
 function SubtitleStyleModal({ 
   videoUrl, 
   onClose,
-  onSave 
+  onSave,
 }: { 
   videoUrl: string;
   onClose: () => void;
@@ -682,14 +679,11 @@ function SubtitleStyleModal({
 }) {
   const [style, setStyle] = useState<SubtitleStyle>({
     fontSize: 'medium',
-    fontFamily: 'Arial',
     fontWeight: 'normal',
     fontStyle: 'normal',
     color: '#FFFFFF',
-    backgroundColor: '#000000',
     position: 'bottom',
-    alignment: 'center',
-    opacity: 0.8
+    alignment: 'center'
   });
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -748,8 +742,18 @@ function SubtitleStyleModal({
   }, [videoUrl]);
 
   const getSubtitleStyle = () => {
-    const baseStyle = {
-      fontFamily: style.fontFamily,
+    // These are the core styles that will be saved and sent to the API
+    const savedStyles = {
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      fontStyle: style.fontStyle,
+      color: style.color,
+      position: style.position,
+      alignment: style.alignment
+    };
+
+    // These are additional styles only for preview
+    const previewStyles: React.CSSProperties = {
       fontSize: {
         small: '16px',
         medium: '24px',
@@ -758,23 +762,37 @@ function SubtitleStyleModal({
       fontWeight: style.fontWeight,
       fontStyle: style.fontStyle,
       color: style.color,
-      backgroundColor: `${style.backgroundColor}${Math.round(style.opacity * 255).toString(16).padStart(2, '0')}`,
       padding: '12px 24px',
       borderRadius: '8px',
       maxWidth: '90%',
-      textAlign: style.alignment as 'left' | 'center' | 'right',
+      textAlign: style.alignment,
       transition: 'all 0.3s ease',
       textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
       whiteSpace: 'pre-line',
-      width: 'fit-content',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
-      zIndex: 10,
-      margin: '0 auto'
+      width: style.alignment === 'center' ? 'fit-content' : '90%',
+      margin: style.alignment === 'center' ? '0 auto' : style.alignment === 'left' ? '0' : '0 0 0 auto'
     };
 
-    return baseStyle;
+    return previewStyles;
+  };
+
+  // Handle style save internally
+  const handleSaveClick = () => {
+    // Only save the core styles without any preview-specific properties
+    const savedStyles = {
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      fontStyle: style.fontStyle,
+      color: style.color,
+      position: style.position,
+      alignment: style.alignment
+    };
+    
+    // Call the onSave callback with the cleaned styles
+    onSave(savedStyles);
+    
+    // Close the modal
+    onClose();
   };
 
   return (
@@ -843,13 +861,11 @@ function SubtitleStyleModal({
                           "absolute left-0 right-0 px-8",
                           style.position === 'bottom' ? 'bottom-[15%]' : 'top-[15%]'
                         )}>
-                          <div className="w-full flex justify-center">
-                            <div
-                              style={getSubtitleStyle()}
-                              className="animate-fade-in"
-                            >
-                              {sampleText[currentTextIndex]}
-                            </div>
+                          <div
+                            style={getSubtitleStyle()}
+                            className="animate-fade-in mx-auto"
+                          >
+                            {sampleText[currentTextIndex]}
                           </div>
                         </div>
                       </div>
@@ -914,20 +930,6 @@ function SubtitleStyleModal({
                         </div>
                       </div>
 
-                      <div className="space-y-3">
-                        <label className="text-sm font-medium text-gray-400">Font Family</label>
-                        <select
-                          value={style.fontFamily}
-                          onChange={(e) => setStyle({ ...style, fontFamily: e.target.value })}
-                          className="w-full bg-gray-800/80 border-2 border-gray-700/50 rounded-lg px-4 py-3 text-gray-200 focus:border-blue-500/50 focus:ring-0 transition-colors"
-                        >
-                          <option value="Arial">Arial</option>
-                          <option value="Helvetica">Helvetica</option>
-                          <option value="Times New Roman">Times New Roman</option>
-                          <option value="Courier New">Courier New</option>
-                        </select>
-                      </div>
-
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           onClick={() => setStyle({ 
@@ -963,78 +965,34 @@ function SubtitleStyleModal({
                     </div>
                   </div>
 
-                  {/* Color & Style section */}
+                  {/* Color Settings */}
                   <div className="space-y-6">
                     <div className="pb-2 border-b-2 border-purple-500/20">
                       <h4 className="text-lg font-medium text-gray-200 flex items-center gap-3">
                         <span className="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
                           <Palette className="w-5 h-5 text-purple-400" />
                         </span>
-                        Color & Style
+                        Color
                       </h4>
                     </div>
                     
-                    <div className="space-y-6">
-                      {/* Combined Color Selection */}
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Text Color */}
-                        <div className="space-y-3">
-                          <label className="text-sm font-medium text-gray-400">Text</label>
-                          <div className="relative group">
-                            <input
-                              type="color"
-                              value={style.color}
-                              onChange={(e) => setStyle({ ...style, color: e.target.value })}
-                              className="sr-only"
-                              id="textColor"
-                            />
-                            <label
-                              htmlFor="textColor"
-                              className="block h-12 rounded-lg cursor-pointer border-2 border-gray-700/50 hover:border-gray-600 transition-all overflow-hidden"
-                              style={{ backgroundColor: style.color }}
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Background Color */}
-                        <div className="space-y-3">
-                          <label className="text-sm font-medium text-gray-400">Background</label>
-                          <div className="relative group">
-                            <input
-                              type="color"
-                              value={style.backgroundColor}
-                              onChange={(e) => setStyle({ ...style, backgroundColor: e.target.value })}
-                              className="sr-only"
-                              id="bgColor"
-                            />
-                            <label
-                              htmlFor="bgColor"
-                              className="block h-12 rounded-lg cursor-pointer border-2 border-gray-700/50 hover:border-gray-600 transition-all overflow-hidden"
-                              style={{ backgroundColor: style.backgroundColor }}
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Background Opacity */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-sm font-medium text-gray-400">Background Opacity</label>
-                          <span className="text-sm text-gray-500">{Math.round(style.opacity * 100)}%</span>
-                        </div>
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-gray-400">Text Color</label>
+                      <div className="relative group">
                         <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          value={style.opacity}
-                          onChange={(e) => setStyle({ ...style, opacity: parseFloat(e.target.value) })}
-                          className="w-full accent-purple-500"
+                          type="color"
+                          value={style.color}
+                          onChange={(e) => setStyle({ ...style, color: e.target.value })}
+                          className="sr-only"
+                          id="textColor"
                         />
+                        <label
+                          htmlFor="textColor"
+                          className="block h-12 rounded-lg cursor-pointer border-2 border-gray-700/50 hover:border-gray-600 transition-all overflow-hidden"
+                          style={{ backgroundColor: style.color }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -1066,6 +1024,26 @@ function SubtitleStyleModal({
                               )}
                             >
                               {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-400">Alignment</label>
+                        <div className="grid grid-cols-3 gap-3">
+                          {['left', 'center', 'right'].map((align) => (
+                            <button
+                              key={align}
+                              onClick={() => setStyle({ ...style, alignment: align as any })}
+                              className={cn(
+                                "px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all",
+                                style.alignment === align
+                                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                                  : "border-gray-700/50 hover:border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                              )}
+                            >
+                              {align.charAt(0).toUpperCase() + align.slice(1)}
                             </button>
                           ))}
                         </div>
@@ -1106,7 +1084,7 @@ function SubtitleStyleModal({
                     </Button>
                     <Button
                       className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0 relative group"
-                      onClick={() => onSave(style)}
+                      onClick={handleSaveClick}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
                       <span className="relative">Save Style</span>
@@ -1151,6 +1129,7 @@ export function DashboardOverview() {
   const [showStyleModal, setShowStyleModal] = useState(false);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle | null>(null);
+  const [uploadedVideoUuid, setUploadedVideoUuid] = useState<string | null>(null);
 
   const fetchVideos = async () => {
     try {
@@ -1242,13 +1221,29 @@ export function DashboardOverview() {
         setIsUploading(true);
         setError(null);
 
-        // Upload video
-        let uploadResponse;
+        // Upload video with subtitle style if available
+        let uploadResponse: VideoUploadResponse;
         try {
           uploadResponse = await videos.upload({
             file: selectedFile,
-            language: selectedLanguage
+            language: selectedLanguage,
+            subtitleStyle: subtitleStyle || undefined
           });
+
+          // Reset modal state and close it
+          setIsUploadModalOpen(false);
+          setSelectedFile(null);
+          setSelectedLanguage('en');
+          setError(null);
+          setEnableDubbing(false);
+          setShowLanguageTooltip(false);
+          setIsUploading(false);
+          setVideoPreviewUrl(null);
+          // Clear subtitle style after successful upload
+          setSubtitleStyle(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
         } catch (err: any) {
           // Handle upload API errors
           const errorMessage = err.response?.data?.detail || 'Failed to upload video';
@@ -1564,12 +1559,13 @@ export function DashboardOverview() {
   };
 
   // Handle style save
-  const handleStyleSave = async (style: SubtitleStyle) => {
+  const handleStyleSave = (style: SubtitleStyle) => {
+    // Update local state with the saved style
     setSubtitleStyle(style);
+    // Close the modal
     setShowStyleModal(false);
-    
-    // TODO: Store style in API once endpoint is available
-    toast.success("Subtitle style saved successfully!");
+    // Show success toast
+    toast.success("Subtitle style saved!");
   };
 
   if (isLoading) {
@@ -1663,8 +1659,8 @@ export function DashboardOverview() {
             <div className="flex flex-col gap-6">
               {selectedFile && (
                 <div className="flex flex-col">
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                    <div className="flex items-center gap-3">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 relative">
+                    <div className="flex items-center gap-3 relative z-10">
                       <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                         <VideoIcon className="w-6 h-6 text-blue-600" />
                       </div>
@@ -1683,7 +1679,7 @@ export function DashboardOverview() {
                                   fileInputRef.current.value = '';
                                 }
                               }}
-                              className="text-gray-500 hover:text-gray-700"
+                              className="text-gray-500 hover:text-gray-700 relative z-10"
                             >
                               <X className="w-4 h-4" />
                             </Button>
@@ -1700,17 +1696,18 @@ export function DashboardOverview() {
                     {/* Add Customize Subtitle Style Button */}
                     <Button
                       variant="outline"
-                      className="w-full mt-4 bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group relative overflow-hidden"
+                      className="w-full mt-4 relative bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
                       onClick={() => {
-                        // Create object URL for video preview
                         const videoUrl = URL.createObjectURL(selectedFile);
                         setVideoPreviewUrl(videoUrl);
                         setShowStyleModal(true);
                       }}
                     >
+                      <div className="flex items-center gap-2 relative z-10">
+                        <Palette className="w-4 h-4 text-blue-500 group-hover:text-blue-600 transition-colors" />
+                        <span>Customize Subtitle Style</span>
+                      </div>
                       <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <Palette className="w-4 h-4 text-blue-500 group-hover:text-blue-600 transition-colors" />
-                      <span className="relative">Customize Subtitle Style</span>
                     </Button>
                   </div>
                 </div>
