@@ -692,10 +692,10 @@ function SubtitleStyleModal({
 
   // Sample text with multiple examples
   const sampleText = [
-    "Welcome to my video presentation",
-    "This is how your subtitles will look",
-    "You can adjust the style to match your needs",
-    "Try different positions and colors!"
+    "Your subtitles appear here, just like this!",
+    "This is a preview of your subtitles in action.",
+    "Personalize your subtitles to match your style.",
+    "Try different positions, colors, and fonts!"
   ];
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
 
