@@ -906,7 +906,7 @@ function SubtitleStyleModal({
 
             {/* Styling Controls - Right Side */}
             <div className="w-[420px] flex flex-col border-l border-gray-200 bg-gray-50">
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:hover:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-gray-400">
                 <div className="p-6">
                   {/* Font Settings */}
                   <div className="space-y-6">
@@ -1069,41 +1069,21 @@ function SubtitleStyleModal({
 
               {/* Action Buttons */}
               <div className="p-6 border-t border-gray-200 bg-white">
-                <div className="flex flex-col gap-4">
-                  {/* Copy JSON Button */}
+                <div className="flex gap-4">
                   <Button
                     variant="outline"
-                    className="w-full border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2 group relative"
-                    onClick={() => {
-                      const styleJson = JSON.stringify(style, null, 2);
-                      navigator.clipboard.writeText(styleJson);
-                      toast.success("Style settings copied to clipboard!");
-                    }}
+                    className="flex-1 border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-700 hover:bg-gray-50"
+                    onClick={onClose}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-gray-50/0 via-gray-50/50 to-gray-50/0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
-                    <span className="relative flex items-center gap-2">
-                      <Palette className="w-4 h-4 text-purple-600" />
-                      Copy Style JSON
-                    </span>
+                    Cancel
                   </Button>
-                  
-                  {/* Main Action Buttons */}
-                  <div className="flex gap-4">
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-2 border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50"
-                      onClick={onClose}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0 relative group"
-                      onClick={handleSaveClick}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
-                      <span className="relative">Save Style</span>
-                    </Button>
-                  </div>
+                  <Button
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0 relative group"
+                    onClick={handleSaveClick}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                    <span className="relative">Save Style</span>
+                  </Button>
                 </div>
               </div>
             </div>
