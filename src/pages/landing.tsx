@@ -321,7 +321,7 @@ const PRICING_TIERS = [
     features: [
       "30 minutes included monthly",
       "All languages supported",
-      "Basic subtitle styles",
+      "Basic subtitle customization",
       "Real-time preview & export",
       "Additional minutes at $1.25/min",
       "7-day video storage"
@@ -338,7 +338,7 @@ const PRICING_TIERS = [
     features: [
       "120 minutes included monthly",
       "All languages supported",
-      "Custom subtitle styles & effects",
+      "Professional subtitle styling",
       "Real-time preview & advanced export",
       "Additional minutes at $1.25/min",
       "30-day video storage"
@@ -355,7 +355,7 @@ const PRICING_TIERS = [
     features: [
       "250 minutes included monthly",
       "Priority support & API access",
-      "Custom subtitle styles & effects",
+      "Advanced subtitle styling & branding",
       "Team collaboration features",
       "Additional minutes at $1.25/min",
       "90-day video storage"
@@ -372,7 +372,7 @@ const PRICING_TIERS = [
     features: [
       "480 minutes included monthly",
       "Dedicated support & custom integrations",
-      "Custom subtitle styles & effects",
+      "Enterprise subtitle styling & branding",
       "Advanced team management",
       "Additional minutes at $1.25/min",
       "Unlimited video storage"
@@ -1251,7 +1251,7 @@ export function LandingPage() {
               Ready to Go Global?
             </h2>
             <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-              Transform your content with AI-powered subtitles and natural voice dubbing in multiple languages. Reach a global audience effortlessly.
+              Transform your content with AI-powered subtitles, customizable styling, and natural voice dubbing for seamless global reach.
             </p>
             <Link to="/register">
               <motion.div
