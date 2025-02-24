@@ -5,7 +5,7 @@ import {
   Play, Video, Presentation, Share2, Download,
   Languages, Subtitles, PlayCircle, ArrowRight, CheckCircle2,
   Clock, Twitter, Github, Linkedin, Youtube, Shield, Cpu, 
-  FileCheck, Building2, Users, Star, MessageSquare, Award
+  FileCheck, Building2, Users, Star, MessageSquare, Award, Palette, Type
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -46,6 +46,34 @@ const FEATURES = [
   },
   {
     id: 2,
+    icon: <Palette className="w-8 h-8 text-purple-400" />,
+    title: "Custom Subtitle Styles",
+    description: "Personalize your subtitles with custom fonts, sizes, colors, and effects. Preview changes in real-time for perfect results.",
+    image: "/screenshots/custom-subtitles-styles.png",
+    color: "purple",
+    stats: [
+      { label: "Style Options", value: "6+" },
+      { label: "Font Sizes", value: "Scalable Sizes" },
+      { label: "Positions", value: "Flexible" },
+      { label: "Effects", value: "Multiple" }
+    ],
+    floatingElements: [
+      {
+        icon: <Type className="w-4 h-4 text-purple-400" />,
+        text: "Custom Styles",
+        position: "top-right",
+        color: "purple"
+      },
+      {
+        icon: <Palette className="w-4 h-4 text-blue-400" />,
+        text: "Live Preview",
+        position: "bottom-left",
+        color: "blue"
+      }
+    ]
+  },
+  {
+    id: 3,
     icon: <Languages className="w-8 h-8 text-purple-400" />,
     title: "Multiple Languages",
     description: "Generate subtitles and AI-powered dubbed audio in multiple languages instantly. Perfect for reaching a global audience with your content.",
@@ -73,7 +101,7 @@ const FEATURES = [
     ]
   },
   {
-    id: 3,
+    id: 4,
     icon: <Presentation className="w-8 h-8 text-pink-400" />,
     title: "Easy Management",
     description: "Organize and manage all your videos in one place. Simple and intuitive dashboard for efficient workflow.",
@@ -101,7 +129,7 @@ const FEATURES = [
     ]
   },
   {
-    id: 4,
+    id: 5,
     icon: <Clock className="w-8 h-8 text-emerald-400" />,
     title: "Usage Analytics",
     description: "Track your usage and optimize your workflow with detailed analytics and insights.",
@@ -245,10 +273,10 @@ const showcaseVideos = [
 
 const features = [
   {
-    title: "Instant Preview",
-    description: "See generated subtitles in real-time with our embedded video player",
-    icon: Video,
-    image: "/screenshots/instant-preview.png"
+    title: "Style Customization",
+    description: "Personalize your subtitles with custom fonts, colors, sizes, and effects for a professional look",
+    icon: Palette,
+    image: "/screenshots/custom-subtitles-styles"
   },
   {
     title: "Multiple Languages",
@@ -271,10 +299,12 @@ const features = [
 ];
 
 const benefits = [
-  "Accurate subtitle generation",
-  "AI-powered audio dubbing",
+  "Custom subtitle styles & effects",
+  "Font size and color options",
+  "Real-time style preview",
   "Multiple language support",
-  "Real-time video preview",
+  "AI-powered audio dubbing",
+  "Accurate subtitle generation",
   "Easy subtitle downloads",
   "Simple video management",
   "Usage analytics",
@@ -291,6 +321,7 @@ const PRICING_TIERS = [
     features: [
       "30 minutes included monthly",
       "All languages supported",
+      "Basic subtitle customization",
       "Real-time preview & export",
       "Additional minutes at $1.25/min",
       "7-day video storage"
@@ -307,6 +338,7 @@ const PRICING_TIERS = [
     features: [
       "120 minutes included monthly",
       "All languages supported",
+      "Professional subtitle styling",
       "Real-time preview & advanced export",
       "Additional minutes at $1.25/min",
       "30-day video storage"
@@ -323,6 +355,7 @@ const PRICING_TIERS = [
     features: [
       "250 minutes included monthly",
       "Priority support & API access",
+      "Advanced subtitle styling & branding",
       "Team collaboration features",
       "Additional minutes at $1.25/min",
       "90-day video storage"
@@ -339,6 +372,7 @@ const PRICING_TIERS = [
     features: [
       "480 minutes included monthly",
       "Dedicated support & custom integrations",
+      "Enterprise subtitle styling & branding",
       "Advanced team management",
       "Additional minutes at $1.25/min",
       "Unlimited video storage"
@@ -388,6 +422,48 @@ const PROCESS_STEPS = [
             <div className="border-2 border-dashed border-blue-500/30 rounded-xl p-8 flex flex-col items-center justify-center bg-blue-500/5">
               <Video className="w-12 h-12 text-blue-400 mb-4 animate-pulse" />
               <p className="text-blue-300 text-center">Drag and drop your video here or click to browse</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    icon: <Palette className="w-8 h-8 text-blue-400" />,
+    title: "Customize Style",
+    description: "Personalize your subtitles with custom fonts, sizes, colors, and effects. Preview changes in real-time before processing.",
+    mockup: (
+      <div className="relative w-full aspect-video bg-slate-800/50 backdrop-blur-xl rounded-xl p-6 border border-white/10">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-full max-w-md space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Type className="w-5 h-5 text-blue-400" />
+                <span className="text-blue-200">Style Options</span>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-300">
+                  <Type className="w-4 h-4 mr-2" />
+                  Font Size
+                </Button>
+                <Button size="sm" className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-300">
+                  <Palette className="w-4 h-4 mr-2" />
+                  Colors
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <div className="space-y-2">
+                  <div className="h-2 bg-blue-400/20 rounded-full w-3/4" />
+                  <div className="h-2 bg-blue-400/20 rounded-full w-1/2" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="h-8 rounded bg-purple-500/20 border border-purple-500/30" />
+                <div className="h-8 rounded bg-blue-500/20 border border-blue-500/30" />
+                <div className="h-8 rounded bg-pink-500/20 border border-pink-500/30" />
+              </div>
             </div>
           </div>
         </div>
@@ -626,7 +702,7 @@ export function LandingPage() {
                 </span>
                 <br />
                 <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  With AI Dubbing & Subtitles
+                  With AI Dubbing & Styled Subtitles
                 </span>
               </motion.h1>
 
@@ -637,7 +713,7 @@ export function LandingPage() {
                 className="relative"
               >
                 <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-8">
-                  Generate professional subtitles and dubbed audio in{' '}
+                  Instantly generate professional subtitles and dubbed audio in{' '}
                   <AnimatePresence mode="wait">
                     <motion.span
                       key={currentLanguage}
@@ -650,8 +726,22 @@ export function LandingPage() {
                     </motion.span>
                   </AnimatePresence>
                   <br />
-                  instantly with our cutting-edge AI technology.
+                  with customizable styles using our advanced AI.
                 </p>
+                <div className="flex flex-wrap gap-4 justify-center items-center mt-8 mb-12">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
+                    <Type className="w-5 h-5 text-blue-400" />
+                    <span className="text-sm text-gray-300">Custom Styles</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
+                    <Languages className="w-5 h-5 text-purple-400" />
+                    <span className="text-sm text-gray-300">AI Dubbing</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
+                    <Sparkles className="w-5 h-5 text-pink-400" />
+                    <span className="text-sm text-gray-300">Real-time Preview</span>
+                  </div>
+                </div>
               </motion.div>
 
               <motion.div 
@@ -1161,7 +1251,7 @@ export function LandingPage() {
               Ready to Go Global?
             </h2>
             <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-              Transform your content with AI-powered subtitles and natural voice dubbing in multiple languages. Reach a global audience effortlessly.
+              Transform your content with AI-powered subtitles, customizable styling, and natural voice dubbing for seamless global reach.
             </p>
             <Link to="/register">
               <motion.div
