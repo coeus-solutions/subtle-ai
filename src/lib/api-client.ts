@@ -65,6 +65,10 @@ export interface VideoListResponse {
   count: number;
   videos: Video[];
   detail?: string;
+  page: number;
+  total_pages: number;
+  per_page: number;
+  total: number;
 }
 
 export interface VideoUploadRequest {
@@ -222,9 +226,12 @@ export const auth = {
 };
 
 export const videos = {
-  async list(include_subtitles: boolean = true): Promise<VideoListResponse> {
+  async list(include_subtitles: boolean = true, page: number = 1): Promise<VideoListResponse> {
     const response = await apiClient.get('/videos/', {
-      params: { include_subtitles }
+      params: { 
+        include_subtitles,
+        page
+      }
     });
     return response.data;
   },

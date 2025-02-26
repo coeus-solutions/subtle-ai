@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Upload, 
   Loader2, 
@@ -50,6 +50,7 @@ import toast from 'react-hot-toast';
 import { useUserDetails } from '@/hooks/use-user-details';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { LoadingBar } from '@/components/ui/loading-bar';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en' as SupportedLanguageType, name: 'English' },
@@ -1094,19 +1095,6 @@ function SubtitleStyleModal({
   );
 }
 
-// Add this CSS animation
-const styleSheet = document.createElement("style");
-styleSheet.textContent = `
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out forwards;
-  }
-`;
-document.head.appendChild(styleSheet);
-
 export function DashboardOverview() {
   const { user } = useAuth();
   const [videoList, setVideoList] = useState<Video[]>([]);
@@ -1124,26 +1112,76 @@ export function DashboardOverview() {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle | null>(null);
   const [uploadedVideoUuid, setUploadedVideoUuid] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMorePages, setHasMorePages] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const observerTarget = useRef<HTMLDivElement>(null);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchVideos = async () => {
+  const fetchVideos = useCallback(async (pageNum: number = 1, append: boolean = false) => {
     try {
-      const response = await videos.list(true);
-      setVideoList(response.videos);
+      setIsFetchingMore(append);
+      if (!append) setIsLoading(true);
+
+      const response = await videos.list(true, pageNum);
+      
+      // Only append if we're loading more pages and have new videos
+      if (append && response.videos.length > 0) {
+        setVideoList(prev => {
+          // Filter out any duplicates based on video UUID
+          const existingUuids = new Set(prev.map(v => v.uuid));
+          const newVideos = response.videos.filter(v => !existingUuids.has(v.uuid));
+          return [...prev, ...newVideos];
+        });
+      } else {
+        setVideoList(response.videos);
+      }
+      
+      setCurrentPage(response.page);
+      setTotalPages(response.total_pages);
+      setError(null);
     } catch (err) {
       console.error('Error fetching videos:', err);
+      toast.error('Failed to load videos');
+    } finally {
+      setIsLoading(false);
+      setIsFetchingMore(false);
     }
-  };
+  }, []); // Remove videoList from dependencies
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && !isLoading && !isFetchingMore && currentPage < totalPages) {
+          fetchVideos(currentPage + 1, true);
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '100px',
+      }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [currentPage, totalPages, isLoading, isFetchingMore, fetchVideos]);
 
   // Initial load
   useEffect(() => {
     const loadInitialData = async () => {
-      setIsLoading(true);
-      await fetchVideos();
+      await fetchVideos(1);
       await fetchUserDetails();
-      setIsLoading(false);
     };
     loadInitialData();
-  }, []);
+  }, [fetchVideos, fetchUserDetails]);
 
   // Function to handle video deletion
   const handleVideoDelete = async (videoId: string) => {
@@ -1562,358 +1600,371 @@ export function DashboardOverview() {
     toast.success("Subtitle style saved!");
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="mb-8">
-          <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse" />
-          <div className="h-4 bg-gray-200 rounded w-1/2 mt-2 animate-pulse" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <VideoCardSkeleton key={i} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6 pl-8 relative">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Videos
-        </h1>
-        <p className="mt-1 text-gray-600">
-          Upload videos and generate accurate AI-powered subtitles and dubbed audio in multiple languages
-        </p>
-      </div>
+    <>
+      <LoadingBar isLoading={isLoading || isFetchingMore} />
+      <div className="p-6 space-y-6">
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Videos
+          </h1>
+          <p className="mt-1 text-gray-600">
+            Upload videos and generate accurate AI-powered subtitles and dubbed audio in multiple languages
+          </p>
+        </div>
 
-      {/* Floating Upload Button */}
-      <Button
-        onClick={() => setIsUploadModalOpen(true)}
-        size="lg"
-        className="fixed bottom-6 right-6 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90"
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Upload Video
-      </Button>
+        {/* Floating Upload Button */}
+        <Button
+          onClick={() => setIsUploadModalOpen(true)}
+          size="lg"
+          className="fixed bottom-6 right-6 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Upload Video
+        </Button>
 
-      {/* Upload Modal */}
-      <Dialog 
-        open={isUploadModalOpen} 
-        onOpenChange={(open) => {
-          if (!open) {
-            // Reset all states when modal is closed
-            setSelectedFile(null);
-            setSelectedLanguage('en');
-            setError(null);
-            setEnableDubbing(false);
-            setShowLanguageTooltip(false);
-            setIsUploading(false);
-            setVideoPreviewUrl(null);
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
+        {/* Upload Modal */}
+        <Dialog 
+          open={isUploadModalOpen} 
+          onOpenChange={(open) => {
+            if (!open) {
+              // Reset all states when modal is closed
+              setSelectedFile(null);
+              setSelectedLanguage('en');
+              setError(null);
+              setEnableDubbing(false);
+              setShowLanguageTooltip(false);
+              setIsUploading(false);
+              setVideoPreviewUrl(null);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
             }
-          }
-          setIsUploadModalOpen(open);
-        }}
-      >
-        <DialogContent className="sm:max-w-[425px] z-[60] bg-white">
-          <DialogHeader>
-            <DialogTitle>Upload Video</DialogTitle>
-            <DialogDescription className="space-y-2 mt-6">
-              <p>Select a video file to generate subtitles and optional AI dubbing</p>
-              <div className="mt-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
-                <div className="font-medium mb-1">File requirements:</div>
-                <ul className="list-disc list-inside space-y-1 text-blue-600">
-                  <li>Maximum file size: 20 MB</li>
-                  <li>Supported formats: MP4, WAV, WebM</li>
-                </ul>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
+            setIsUploadModalOpen(open);
+          }}
+        >
+          <DialogContent className="sm:max-w-[425px] z-[60] bg-white">
+            <DialogHeader>
+              <DialogTitle>Upload Video</DialogTitle>
+              <DialogDescription className="space-y-2 mt-6">
+                <p>Select a video file to generate subtitles and optional AI dubbing</p>
+                <div className="mt-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                  <div className="font-medium mb-1">File requirements:</div>
+                  <ul className="list-disc list-inside space-y-1 text-blue-600">
+                    <li>Maximum file size: 20 MB</li>
+                    <li>Supported formats: MP4, WAV, WebM</li>
+                  </ul>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="grid gap-6 py-4">
-            {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200">
-                {error}
-              </div>
-            )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept="video/mp4,video/webm,audio/wav"
-              onChange={handleFileSelect}
-              disabled={isUploading}
-            />
-            
-            <div className="flex flex-col gap-6">
-              {selectedFile && (
-                <div className="flex flex-col">
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 relative">
-                    <div className="flex items-center gap-3 relative z-10">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <VideoIcon className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-base font-semibold text-gray-900 truncate">
-                            {selectedFile.name}
-                          </p>
-                          {!isUploading && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedFile(null);
-                                if (fileInputRef.current) {
-                                  fileInputRef.current.value = '';
-                                }
-                              }}
-                              className="text-gray-500 hover:text-gray-700 relative z-10"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-sm text-blue-600 font-medium">
-                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Add Customize Subtitle Style Button */}
-                    <Button
-                      variant="outline"
-                      className="w-full mt-4 relative bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
-                      onClick={() => {
-                        const videoUrl = URL.createObjectURL(selectedFile);
-                        setVideoPreviewUrl(videoUrl);
-                        setShowStyleModal(true);
-                      }}
-                    >
-                      <div className="flex items-center gap-2 relative z-10">
-                        <Palette className="w-4 h-4 text-blue-500 group-hover:text-blue-600 transition-colors" />
-                        <span>Customize Subtitle Style</span>
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </Button>
-                  </div>
+            <div className="grid gap-6 py-4">
+              {error && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200">
+                  {error}
                 </div>
               )}
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">
-                    Target Language for Subtitles
-                  </label>
-                </div>
-                <Select
-                  value={selectedLanguage}
-                  onValueChange={(value: SupportedLanguageType) => setSelectedLanguage(value)}
-                  disabled={isUploading}
-                >
-                  <SelectTrigger className="w-full bg-white">
-                    <SelectValue placeholder="Choose subtitle language" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={8} className="bg-white z-[110] max-h-[300px] overflow-y-auto">
-                    {SUPPORTED_LANGUAGES.map((lang) => (
-                      <SelectItem 
-                        key={lang.code} 
-                        value={lang.code}
-                        className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900"
-                      >
-                        {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Enhanced Dubbing Toggle */}
-              <div className={cn(
-                "p-4 rounded-lg border transition-colors duration-200",
-                enableDubbing 
-                  ? "bg-blue-50/50 border-blue-200 shadow-sm" 
-                  : "bg-gray-50 border-gray-200"
-              )}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className={cn(
-                      "mt-1 p-2 rounded-lg transition-colors duration-200",
-                      enableDubbing ? "bg-blue-100" : "bg-gray-100"
-                    )}>
-                      <Subtitles className={cn(
-                        "w-5 h-5 transition-colors duration-200",
-                        enableDubbing ? "text-blue-600" : "text-gray-600"
-                      )} />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-sm font-medium transition-colors duration-200",
-                          enableDubbing ? "text-blue-900" : "text-gray-700"
-                        )}>
-                          Audio Dubbing
-                        </span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Info className={cn(
-                                "w-4 h-4 transition-colors duration-200",
-                                enableDubbing ? "text-blue-400" : "text-gray-400"
-                              )} />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs bg-gray-900 text-gray-100 border border-gray-700">
-                              <div className="space-y-2">
-                                <p className="font-medium">Audio Dubbing Feature</p>
-                                <p className="text-sm text-gray-200">
-                                  When enabled, we'll use advanced AI to dub your video in the target language. Subtitles will also be generated for the dubbed audio.
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="video/mp4,video/webm,audio/wav"
+                onChange={handleFileSelect}
+                disabled={isUploading}
+              />
+              
+              <div className="flex flex-col gap-6">
+                {selectedFile && (
+                  <div className="flex flex-col">
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 relative">
+                      <div className="flex items-center gap-3 relative z-10">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <VideoIcon className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-base font-semibold text-gray-900 truncate">
+                              {selectedFile.name}
+                            </p>
+                            {!isUploading && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedFile(null);
+                                  if (fileInputRef.current) {
+                                    fileInputRef.current.value = '';
+                                  }
+                                }}
+                                className="text-gray-500 hover:text-gray-700 relative z-10"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-sm text-blue-600 font-medium">
+                              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-xs text-gray-500 mt-0.5">
-                        AI will dub your video in the target language
-                      </span>
+
+                      {/* Add Customize Subtitle Style Button */}
+                      <Button
+                        variant="outline"
+                        className="w-full mt-4 relative bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
+                        onClick={() => {
+                          const videoUrl = URL.createObjectURL(selectedFile);
+                          setVideoPreviewUrl(videoUrl);
+                          setShowStyleModal(true);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 relative z-10">
+                          <Palette className="w-4 h-4 text-blue-500 group-hover:text-blue-600 transition-colors" />
+                          <span>Customize Subtitle Style</span>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </Button>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={enableDubbing}
-                    onClick={() => setEnableDubbing(!enableDubbing)}
-                    className={cn(
-                      "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-                      enableDubbing ? "bg-blue-600" : "bg-gray-200"
-                    )}
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-gray-700">
+                      Target Language for Subtitles
+                    </label>
+                  </div>
+                  <Select
+                    value={selectedLanguage}
+                    onValueChange={(value: SupportedLanguageType) => setSelectedLanguage(value)}
+                    disabled={isUploading}
                   >
-                    <span
-                      className={cn(
-                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                        enableDubbing ? "translate-x-5" : "translate-x-0"
-                      )}
-                    />
-                  </button>
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue placeholder="Choose subtitle language" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={8} className="bg-white z-[110] max-h-[300px] overflow-y-auto">
+                      {SUPPORTED_LANGUAGES.map((lang) => (
+                        <SelectItem 
+                          key={lang.code} 
+                          value={lang.code}
+                          className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900"
+                        >
+                          {lang.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Additional Info when dubbing is enabled */}
-                {enableDubbing && (
-                  <div className="mt-3 pt-3 border-t border-blue-200">
-                    <div className="flex items-start gap-2 text-xs text-blue-700">
-                      <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <p>
-                        The dubbing process may take a few minutes. You'll be able to preview and download 
-                        both the original and dubbed versions once complete.
-                      </p>
+                {/* Enhanced Dubbing Toggle */}
+                <div className={cn(
+                  "p-4 rounded-lg border transition-colors duration-200",
+                  enableDubbing 
+                    ? "bg-blue-50/50 border-blue-200 shadow-sm" 
+                    : "bg-gray-50 border-gray-200"
+                )}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className={cn(
+                        "mt-1 p-2 rounded-lg transition-colors duration-200",
+                        enableDubbing ? "bg-blue-100" : "bg-gray-100"
+                      )}>
+                        <Subtitles className={cn(
+                          "w-5 h-5 transition-colors duration-200",
+                          enableDubbing ? "text-blue-600" : "text-gray-600"
+                        )} />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "text-sm font-medium transition-colors duration-200",
+                            enableDubbing ? "text-blue-900" : "text-gray-700"
+                          )}>
+                            Audio Dubbing
+                          </span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Info className={cn(
+                                  "w-4 h-4 transition-colors duration-200",
+                                  enableDubbing ? "text-blue-400" : "text-gray-400"
+                                )} />
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs bg-gray-900 text-gray-100 border border-gray-700">
+                                <div className="space-y-2">
+                                  <p className="font-medium">Audio Dubbing Feature</p>
+                                  <p className="text-sm text-gray-200">
+                                    When enabled, we'll use advanced AI to dub your video in the target language. Subtitles will also be generated for the dubbed audio.
+                                  </p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <span className="text-xs text-gray-500 mt-0.5">
+                          AI will dub your video in the target language
+                        </span>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={enableDubbing}
+                      onClick={() => setEnableDubbing(!enableDubbing)}
+                      className={cn(
+                        "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                        enableDubbing ? "bg-blue-600" : "bg-gray-200"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                          enableDubbing ? "translate-x-5" : "translate-x-0"
+                        )}
+                      />
+                    </button>
                   </div>
-                )}
+
+                  {/* Additional Info when dubbing is enabled */}
+                  {enableDubbing && (
+                    <div className="mt-3 pt-3 border-t border-blue-200">
+                      <div className="flex items-start gap-2 text-xs text-blue-700">
+                        <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <p>
+                          The dubbing process may take a few minutes. You'll be able to preview and download 
+                          both the original and dubbed versions once complete.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  onClick={selectedFile ? handleUpload : handleUploadClick}
+                  disabled={isUploading || (!!selectedFile && !selectedLanguage)}
+                  size="lg"
+                  className="w-full bg-primary hover:bg-primary/90"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing video...
+                    </>
+                  ) : selectedFile ? (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Generate Subtitles
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Select Video
+                    </>
+                  )}
+                </Button>
               </div>
-
-              <Button
-                onClick={selectedFile ? handleUpload : handleUploadClick}
-                disabled={isUploading || (!!selectedFile && !selectedLanguage)}
-                size="lg"
-                className="w-full bg-primary hover:bg-primary/90"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing video...
-                  </>
-                ) : selectedFile ? (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Generate Subtitles
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Select Video
-                  </>
-                )}
-              </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
 
-      {/* Subtitle Style Modal */}
-      {showStyleModal && videoPreviewUrl && (
-        <SubtitleStyleModal
-          videoUrl={videoPreviewUrl}
-          onClose={() => {
-            setShowStyleModal(false);
-            URL.revokeObjectURL(videoPreviewUrl);
-            setVideoPreviewUrl(null);
-          }}
-          onSave={handleStyleSave}
-        />
-      )}
-
-      {error && (
-        <div className="mb-8 p-4 text-sm text-red-600 bg-red-50 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {/* Video Gallery */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {videoList.map((video) => (
-          <VideoCard 
-            key={video.uuid} 
-            video={video} 
-            onDelete={handleVideoDelete}
-            onVideoUpdate={handleVideoUpdate}
-            enableDubbing={enableDubbing}
+        {/* Subtitle Style Modal */}
+        {showStyleModal && videoPreviewUrl && (
+          <SubtitleStyleModal
+            videoUrl={videoPreviewUrl}
+            onClose={() => {
+              setShowStyleModal(false);
+              URL.revokeObjectURL(videoPreviewUrl);
+              setVideoPreviewUrl(null);
+            }}
+            onSave={handleStyleSave}
           />
-        ))}
-      </div>
+        )}
 
-      {/* Empty State */}
-      {videoList.length === 0 && !isLoading && (
-        <div className="text-center py-16 px-4 rounded-xl border-2 border-dashed border-gray-200 bg-white">
-          <div className="flex justify-center mb-4">
-            <div className="relative">
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
-                <VideoIcon className="w-8 h-8 text-blue-600" />
-              </div>
-              <div className="absolute -right-1 -bottom-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                <Plus className="w-4 h-4 text-white" />
-              </div>
-            </div>
+        {error && (
+          <div className="mb-8 p-4 text-sm text-red-600 bg-red-50 rounded-lg">
+            {error}
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
-            No videos yet
-          </h3>
-          <p className="text-gray-500 mb-4 max-w-sm mx-auto">
-            Upload your first video and let SubtleAI generate accurate subtitles for you in minutes.
-          </p>
-          <div className="max-w-sm mx-auto mb-6 rounded-lg bg-blue-50 p-3 text-sm text-blue-700 text-left">
-            <div className="font-medium mb-1">File requirements:</div>
-            <ul className="list-disc list-inside space-y-1 text-blue-600">
-              <li>Maximum file size: 20 MB</li>
-              <li>Supported formats: MP4, WAV, WebM</li>
-            </ul>
-          </div>
-          <Button
-            onClick={() => setIsUploadModalOpen(true)}
-            className="inline-flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Upload your first video
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+        )}
+
+        {/* Video Gallery */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {isLoading ? (
+            // Skeleton loading state
+            [...Array(6)].map((_, i) => (
+              <VideoCardSkeleton key={i} />
+            ))
+          ) : (
+            // Actual video cards
+            videoList.map((video) => (
+              <VideoCard 
+                key={video.uuid} 
+                video={video} 
+                onDelete={handleVideoDelete}
+                onVideoUpdate={handleVideoUpdate}
+                enableDubbing={enableDubbing}
+              />
+            ))
+          )}
         </div>
-      )}
-    </div>
+
+        {/* Loading indicator for infinite scroll */}
+        {currentPage < totalPages && (
+          <div ref={observerTarget} className="w-full py-8 flex justify-center">
+            {isFetchingMore ? (
+              <div className="relative w-12 h-12">
+                <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-purple-500 border-b-blue-500 border-l-purple-500 opacity-20" />
+                <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+                <div className="absolute inset-[6px] rounded-full border-2 border-t-purple-500 border-r-transparent border-b-transparent border-l-transparent animate-spin [animation-duration:0.6s]" />
+              </div>
+            ) : (
+              <div className="h-16" />
+            )}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {videoList.length === 0 && !isLoading && (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No videos uploaded yet</p>
+          </div>
+        )}
+      </div>
+      <style>{`
+        /* Webkit (Chrome, Safari, Edge) */
+        ::-webkit-scrollbar {
+          width: 14px;
+          height: 14px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: #2d2d2d;
+          border: 2px solid #1a1a1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: #666666;
+          border: 2px solid #2d2d2d;
+          border-radius: 8px;
+          min-height: 40px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: #808080;
+        }
+        
+        ::-webkit-scrollbar-corner {
+          background: #2d2d2d;
+        }
+
+        /* Firefox */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: #666666 #2d2d2d;
+        }
+      `}</style>
+    </>
   );
 }
