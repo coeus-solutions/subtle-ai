@@ -701,7 +701,7 @@ export function LandingPage() {
                   Transform Your Videos
                 </span>
                 <br />
-                <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <span className="text-[0.85em] bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                   With AI Dubbing & Styled Subtitles
                 </span>
               </motion.h1>
