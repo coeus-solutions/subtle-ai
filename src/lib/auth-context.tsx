@@ -1,9 +1,23 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, setAuthToken, clearAuthToken } from './api-client';
+import { jwtDecode } from 'jwt-decode';
+import { socketCluster } from './socketcluster';
+
+interface TokenPayload {
+  sub: string;
+  uuid: string;
+  exp: number;
+  publish: string[];
+  subscribe: string[];
+}
 
 interface User {
   email: string;
+  uuid: string;
+  sub: string;
+  publish: string[];
+  subscribe: string[];
 }
 
 interface AuthContextType {
@@ -24,11 +38,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      setAuthToken(token);
-      // You might want to add a /me endpoint to fetch user details
-      const email = localStorage.getItem('userEmail');
-      if (email) {
-        setUser({ email });
+      try {
+        const decoded = jwtDecode<TokenPayload>(token);
+        setAuthToken(token);
+        const userData = {
+          email: decoded.sub,
+          uuid: decoded.uuid,
+          sub: decoded.sub,
+          publish: decoded.publish,
+          subscribe: decoded.subscribe
+        };
+        setUser(userData);
+        socketCluster.authenticate();
+      } catch (error) {
+        console.error('Token decode error:', error);
+        localStorage.removeItem('token');
+        clearAuthToken();
+        socketCluster.deauthenticate();
       }
     }
     setIsLoading(false);
@@ -37,10 +63,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await auth.login(email, password);
-      localStorage.setItem('token', response.access_token);
-      localStorage.setItem('userEmail', email);
-      setAuthToken(response.access_token);
-      setUser({ email });
+      const token = response.access_token;
+      const decoded = jwtDecode<TokenPayload>(token);
+      
+      localStorage.setItem('token', token);
+      setAuthToken(token);
+      const userData = {
+        email: decoded.sub,
+        uuid: decoded.uuid,
+        sub: decoded.sub,
+        publish: decoded.publish,
+        subscribe: decoded.subscribe
+      };
+      setUser(userData);
+      await socketCluster.authenticate();
       navigate('/dashboard');
     } catch (error) {
       throw error;
@@ -50,7 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (email: string, password: string) => {
     try {
       await auth.register({ email, password });
-      // After successful registration, log the user in
       await login(email, password);
     } catch (error) {
       throw error;
@@ -61,8 +96,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await auth.logout();
       localStorage.removeItem('token');
-      localStorage.removeItem('userEmail');
       clearAuthToken();
+      socketCluster.deauthenticate();
       setUser(null);
       navigate('/login');
     } catch (error) {
@@ -71,7 +106,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      register, 
+      logout, 
+      isLoading
+    }}>
       {children}
     </AuthContext.Provider>
   );
