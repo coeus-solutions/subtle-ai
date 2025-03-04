@@ -50,6 +50,7 @@ import toast from 'react-hot-toast';
 import { useUserDetails } from '@/hooks/use-user-details';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { useUserChannel, type ChannelMessage } from '@/hooks/useUserChannel';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en' as SupportedLanguageType, name: 'English' },
@@ -1561,6 +1562,27 @@ export function DashboardOverview() {
     // Show success toast
     toast.success("Subtitle style saved!");
   };
+
+  // Add user channel subscription
+  useUserChannel((message: ChannelMessage) => {
+    console.log('User channel message:', message);
+    switch (message.type) {
+      case 'VIDEO_STATUS_UPDATE':
+        if (message.data?.video) {
+          handleVideoUpdate(message.data.video);
+        }
+        break;
+      case 'PROFILE_UPDATED':
+        // Handle profile updates if needed
+        break;
+      case 'USER_LOGOUT':
+        // Handle forced logout if needed
+        break;
+      default:
+        // Removed console.log for unhandled message types
+        break;
+    }
+  });
 
   if (isLoading) {
     return (
