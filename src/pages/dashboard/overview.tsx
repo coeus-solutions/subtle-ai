@@ -382,9 +382,9 @@ function VideoCard({ video, onDelete, onVideoUpdate }: {
   // Function to get the current video state label
   const getCurrentStateLabel = () => {
     if (video.processed_video_url && showProcessedVersion) {
-      return video.processing_type === 'dubbing' ? 'Dubbed' : 'Voiceover';
+      return video.processing_type === 'dubbing' ? 'Dubbed' : 'VoicedOver';
     } else if (video.burned_video_url && showBurnedVersion) {
-      return 'Subtitled';
+      return video.processing_type === 'voiceover' ? 'VoicedOver' : 'Subtitled';
     }
     return 'Original';
   };
@@ -392,9 +392,9 @@ function VideoCard({ video, onDelete, onVideoUpdate }: {
   // Function to get the next state label for tooltip
   const getNextStateLabel = () => {
     if (video.processed_video_url) {
-      return showProcessedVersion ? 'original' : (video.processing_type === 'dubbing' ? 'dubbed' : 'voiceover');
+      return showProcessedVersion ? 'original' : (video.processing_type === 'dubbing' ? 'dubbed' : 'voicedover');
     }
-    return showBurnedVersion ? 'original' : 'subtitled';
+    return showBurnedVersion ? 'original' : (video.processing_type === 'voiceover' ? 'voicedover' : 'subtitled');
   };
 
   return (
@@ -417,7 +417,7 @@ function VideoCard({ video, onDelete, onVideoUpdate }: {
                 <div className="text-center text-white">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
                   <p className="text-sm font-medium">
-                    {video.processingMessage || 'Generating Subtitles...'}
+                    {video.processingMessage || (video.processing_type === 'voiceover' ? 'Generating Voiceover...' : 'Generating Subtitles...')}
                   </p>
                 </div>
               </div>
@@ -1276,7 +1276,11 @@ export function DashboardOverview() {
           original_name: selectedFile.name,
           duration_minutes: 0,
           status: 'processing',
-          processingMessage: 'Generating Subtitles...',
+          processingMessage: processingType === 'voiceover' 
+            ? 'Generating Voiceover...' 
+            : processingType === 'dubbing' 
+              ? 'Dubbing Audio...' 
+              : 'Generating Subtitles...',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           has_subtitles: false,
@@ -1286,7 +1290,7 @@ export function DashboardOverview() {
           dubbing_id: null,
           is_dubbed_audio: false,
           burned_video_url: null,
-          processing_type: 'subtitles'
+          processing_type: processingType as ProcessingType
         };
 
         setVideoList(prev => [newVideo, ...prev]);
@@ -1308,7 +1312,7 @@ export function DashboardOverview() {
           const generationResponse = await videos.generateSubtitles(
             uploadResponse.video_uuid,
             selectedLanguage,
-            { processing_type: 'subtitles' }
+            { processing_type: processingType }
           );
 
           if (processingType !== 'subtitles' && generationResponse.dubbing_id) {
