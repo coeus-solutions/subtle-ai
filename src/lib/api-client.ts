@@ -42,6 +42,8 @@ export interface RegisterResponse {
 // Video Types
 export type SupportedLanguageType = 'en' | 'es' | 'fr' | 'de' | 'ja' | 'ru' | 'it' | 'zh' | 'tr' | 'ko' | 'pt';
 
+export type ProcessingType = 'subtitles' | 'dubbing' | 'voiceover';
+
 export type Video = {
   uuid: string;
   video_url: string;
@@ -53,11 +55,12 @@ export type Video = {
   has_subtitles: boolean;
   subtitle_languages: Array<SupportedLanguageType>;
   subtitles: Array<Subtitle>;
-  dubbed_video_url: string | null;
+  processed_video_url: string | null;
   dubbing_id: string | null;
   is_dubbed_audio: boolean;
   burned_video_url: string | null;
   processingMessage?: string;
+  processing_type?: ProcessingType;
 };
 
 export interface VideoListResponse {
@@ -71,6 +74,7 @@ export interface VideoUploadRequest {
   file: File;
   language: string;
   subtitleStyle?: SubtitleStyle;
+  processing_type?: ProcessingType;
 }
 
 export interface VideoUploadResponse {
@@ -135,7 +139,7 @@ export interface DubbingResponse {
   message: string;
   video_uuid: string;
   dubbing_id: string;
-  dubbed_video_url: string;
+  processed_video_url: string;
   language: string;
   status: string;
   duration_minutes: number | null;
@@ -229,12 +233,15 @@ export const videos = {
     return response.data;
   },
 
-  async upload({ file, language, subtitleStyle }: VideoUploadRequest): Promise<VideoUploadResponse> {
+  async upload({ file, language, subtitleStyle, processing_type }: VideoUploadRequest): Promise<VideoUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('language', language);
     if (subtitleStyle) {
       formData.append('subtitle_styles', JSON.stringify(subtitleStyle));
+    }
+    if (processing_type) {
+      formData.append('processing_type', processing_type);
     }
 
     const response = await apiClient.post('/videos/upload', formData, {
@@ -254,15 +261,12 @@ export const videos = {
     videoUuid: string,
     language: string,
     options?: { 
-      enable_dubbing?: boolean;
       subtitleStyle?: SubtitleStyle;
     }
   ): Promise<SubtitleGenerationResponse> {
     const response = await apiClient.post(
       `/videos/${videoUuid}/generate_subtitles`,
-      { 
-        enable_dubbing: options?.enable_dubbing || false
-      }
+      {}
     );
     return response.data;
   },
