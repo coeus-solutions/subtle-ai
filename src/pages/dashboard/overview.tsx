@@ -51,6 +51,7 @@ import { useUserDetails } from '@/hooks/use-user-details';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useUserChannel, type ChannelMessage } from '@/hooks/useUserChannel';
+import { Label } from '@/components/ui/label';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en' as SupportedLanguageType, name: 'English' },
@@ -1671,9 +1672,11 @@ export function DashboardOverview() {
       >
         <DialogContent className="sm:max-w-[425px] z-[60] bg-white">
           <DialogHeader>
-            <DialogTitle>Upload Video</DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle>Upload Video</DialogTitle>
+            </div>
             <DialogDescription className="space-y-2 mt-6">
-              <p>Select a video file to generate subtitles and optional AI dubbing</p>
+              <p>Select a video file to process with AI</p>
               <div className="mt-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
                 <div className="font-medium mb-1">File requirements:</div>
                 <ul className="list-disc list-inside space-y-1 text-blue-600">
@@ -1757,11 +1760,14 @@ export function DashboardOverview() {
                 </div>
               )}
 
+              {/* Target Language Section */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">
-                    Target Language for Subtitles
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Target Language
+                    </label>
+                  </div>
                 </div>
                 <Select
                   value={selectedLanguage}
@@ -1785,81 +1791,67 @@ export function DashboardOverview() {
                 </Select>
               </div>
 
-              {/* Enhanced Dubbing Toggle */}
-              <div className={cn(
-                "p-4 rounded-lg border transition-colors duration-200",
-                processingType !== 'subtitles' ? "bg-blue-50/50 border-blue-200 shadow-sm" : "bg-gray-50 border-gray-200"
-              )}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className={cn(
-                      "mt-1 p-2 rounded-lg transition-colors duration-200",
-                      processingType !== 'subtitles' ? "bg-blue-100" : "bg-gray-100"
-                    )}>
-                      <Subtitles className={cn(
-                        "w-5 h-5 transition-colors duration-200",
-                        processingType !== 'subtitles' ? "text-blue-600" : "text-gray-600"
-                      )} />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-sm font-medium transition-colors duration-200",
-                          processingType !== 'subtitles' ? "text-blue-900" : "text-gray-700"
-                        )}>
-                          Processing Type
-                        </span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Info className={cn(
-                                "w-4 h-4 transition-colors duration-200",
-                                processingType !== 'subtitles' ? "text-blue-400" : "text-gray-400"
-                              )} />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs bg-gray-900 text-gray-100 border border-gray-700">
-                              <div className="space-y-2">
-                                <p className="font-medium">Processing Options</p>
-                                <p className="text-sm text-gray-200">
-                                  Choose how you want your video processed:
-                                  <br />• Subtitles: Add text subtitles
-                                  <br />• Dubbing: AI voice in target language
-                                  <br />• Voiceover: AI narration overlay
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <span className="text-xs text-gray-500 mt-0.5">
-                        AI will process your video in the target language
-                      </span>
-                    </div>
-                  </div>
-                  <select
-                    value={processingType}
-                    onChange={(e) => setProcessingType(e.target.value as ProcessingType)}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                  >
-                    <option value="subtitles">Subtitles Only</option>
-                    <option value="dubbing">AI Dubbing</option>
-                    <option value="voiceover">AI Voiceover</option>
-                  </select>
+              {/* Processing Type Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium text-gray-700">Processing Type</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="w-4 h-4 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs bg-gray-900 text-gray-100 border border-gray-700">
+                        <div className="space-y-3">
+                          <p className="font-medium">Processing Options:</p>
+                          <div className="space-y-2">
+                            <div>
+                              <p className="font-medium text-blue-300">Subtitles Only</p>
+                              <p className="text-sm text-gray-200">Generates accurate subtitles in your chosen target language</p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-blue-300">AI Dubbing</p>
+                              <p className="text-sm text-gray-200">Translates audio while preserving original voice characteristics. Includes subtitles in the dubbed language.</p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-blue-300">AI Voice Over</p>
+                              <p className="text-sm text-gray-200">Creates natural-sounding voice narration in target language. Includes matching subtitles.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-
-                {/* Additional Info when dubbing is enabled */}
-                {processingType !== 'subtitles' && (
-                  <div className="mt-3 pt-3 border-t border-blue-200">
-                    <div className="flex items-start gap-2 text-xs text-blue-700">
-                      <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <p>
-                        The dubbing process may take a few minutes. You'll be able to preview and download 
-                        both the original and processed versions once complete.
-                      </p>
-                    </div>
-                  </div>
-                )}
+                <Select value={processingType} onValueChange={setProcessingType}>
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue placeholder="Select processing type" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={8} className="bg-white z-[110]">
+                    <SelectItem value="subtitles" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
+                      Subtitles Only
+                    </SelectItem>
+                    <SelectItem value="dubbing" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
+                      AI Dubbing
+                    </SelectItem>
+                    <SelectItem value="voiceover" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
+                      AI Voice Over
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Additional Info when AI processing is enabled */}
+              {processingType !== 'subtitles' && (
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <div className="flex items-start gap-2 text-xs text-blue-700">
+                    <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <p>
+                      The AI processing may take a few minutes. You'll be able to preview and download 
+                      both the original and processed versions once complete.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <Button
                 onClick={selectedFile ? handleUpload : handleUploadClick}
@@ -1875,7 +1867,7 @@ export function DashboardOverview() {
                 ) : selectedFile ? (
                   <>
                     <Upload className="w-4 h-4 mr-2" />
-                    Generate Subtitles
+                    Start Processing
                   </>
                 ) : (
                   <>
