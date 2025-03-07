@@ -86,7 +86,7 @@ function VideoCard({
   video: Video; 
   onDelete: (videoId: string) => void;
   onVideoUpdate: (updatedVideo: Video) => void;
-  voiceoverSettings?: { description: string; speed: number };
+  voiceoverSettings?: { description: string; speed: number; voice_gender: 'male' | 'female' };
 }) {
   const [isSubtitleDownloading, setIsSubtitleDownloading] = useState<string | null>(null);
   const [isOriginalDownloading, setIsOriginalDownloading] = useState(false);
@@ -229,13 +229,15 @@ function VideoCard({
       let apiOptions: {
         description?: string;
         speed?: number;
+        voice_gender?: 'male' | 'female';
       } = {};
       
-      // Only add description and speed if processing type is voiceover
+      // Only add description, speed, and voice_gender if processing type is voiceover
       if (video.processing_type === 'voiceover') {
         // Use saved settings if available, otherwise use empty string for description
         apiOptions.description = voiceoverSettings?.description || "";
         apiOptions.speed = voiceoverSettings?.speed || 1.0;
+        apiOptions.voice_gender = voiceoverSettings?.voice_gender || "female";
       }
       
       const response = await videos.generateSubtitles(
@@ -1156,9 +1158,14 @@ export function DashboardOverview() {
   const [uploadedVideoUuid, setUploadedVideoUuid] = useState<string | null>(null);
   const [voiceDescription, setVoiceDescription] = useState('');
   const [speakingSpeed, setSpeakingSpeed] = useState(1.0);
+  const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('female');
   const [isVoiceSettingsExpanded, setIsVoiceSettingsExpanded] = useState(false);
   const [showVoiceoverModal, setShowVoiceoverModal] = useState(false);
-  const [voiceoverSettings, setVoiceoverSettings] = useState<{ description: string; speed: number }>({ description: '', speed: 1.0 });
+  const [voiceoverSettings, setVoiceoverSettings] = useState<{ description: string; speed: number; voice_gender: 'male' | 'female' }>({ 
+    description: '', 
+    speed: 1.0,
+    voice_gender: 'female'
+  });
 
   const fetchVideos = async () => {
     try {
@@ -1338,13 +1345,15 @@ export function DashboardOverview() {
           let apiOptions: {
             description?: string;
             speed?: number;
+            voice_gender?: 'male' | 'female';
           } = {};
           
-          // Only add description and speed if processing type is voiceover
+          // Only add description, speed, and voice_gender if processing type is voiceover
           if (processingType === 'voiceover') {
             // Use saved settings if available, otherwise use empty string for description
             apiOptions.description = voiceoverSettings?.description || "";
             apiOptions.speed = voiceoverSettings?.speed || 1.0;
+            apiOptions.voice_gender = voiceoverSettings?.voice_gender || "female";
           }
           
           const generationResponse = await videos.generateSubtitles(
@@ -1900,6 +1909,7 @@ export function DashboardOverview() {
                     if (open) {
                       // Reset to default values when modal opens
                       setSpeakingSpeed(1.0);
+                      setVoiceGender('female');
                     }
                     setShowVoiceoverModal(open);
                   }}
@@ -2023,6 +2033,47 @@ export function DashboardOverview() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Voice Gender Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-base font-medium text-gray-900">Voice Gender</h4>
+                          <div className="relative group">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 cursor-help">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <path d="M12 16v-4"></path>
+                              <path d="M12 8h.01"></path>
+                            </svg>
+                            <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                              Select the gender of the AI voice that will narrate your video.
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-4 p-4 rounded-lg bg-white border border-blue-200 shadow-sm">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="voiceGender"
+                              value="female"
+                              checked={voiceGender === 'female'}
+                              onChange={() => setVoiceGender('female')}
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                            />
+                            <span className="text-gray-900">Female</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="voiceGender"
+                              value="male"
+                              checked={voiceGender === 'male'}
+                              onChange={() => setVoiceGender('male')}
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                            />
+                            <span className="text-gray-900">Male</span>
+                          </label>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-end gap-4 p-6 bg-blue-50/50 border-t border-blue-100">
@@ -2038,7 +2089,8 @@ export function DashboardOverview() {
                           // Save the voice description and speed for later use
                           setVoiceoverSettings({
                             description: voiceDescription,
-                            speed: speakingSpeed
+                            speed: speakingSpeed,
+                            voice_gender: voiceGender
                           });
                           setShowVoiceoverModal(false);
                         }}

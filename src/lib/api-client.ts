@@ -265,6 +265,7 @@ export const videos = {
       processing_type?: ProcessingType;
       description?: string;
       speed?: number;
+      voice_gender?: 'male' | 'female';
     }
   ): Promise<SubtitleGenerationResponse> {
     // Extract only description and speed for voiceover
@@ -277,6 +278,10 @@ export const videos = {
     
     if (options?.speed !== undefined) {
       payload.speed = options.speed;
+    }
+    
+    if (options?.voice_gender !== undefined) {
+      payload.voice_gender = options.voice_gender;
     }
     
     const response = await apiClient.post(
