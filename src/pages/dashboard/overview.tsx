@@ -21,7 +21,8 @@ import {
   Bold,
   Italic,
   ArrowUpDown,
-  Type
+  Type,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { videos, subtitles, users, type Video, type Subtitle, type UserDetails, type SupportedLanguageType, type VideoUploadResponse, ProcessingType, type VideoUploadRequest } from '@/lib/api-client';
@@ -76,10 +77,16 @@ interface SubtitleStyle {
   alignment: 'left' | 'center' | 'right';
 }
 
-function VideoCard({ video, onDelete, onVideoUpdate }: { 
+function VideoCard({ 
+  video, 
+  onDelete, 
+  onVideoUpdate,
+  voiceoverSettings
+}: { 
   video: Video; 
   onDelete: (videoId: string) => void;
   onVideoUpdate: (updatedVideo: Video) => void;
+  voiceoverSettings?: { description: string; speed: number };
 }) {
   const [isSubtitleDownloading, setIsSubtitleDownloading] = useState<string | null>(null);
   const [isOriginalDownloading, setIsOriginalDownloading] = useState(false);
@@ -218,10 +225,23 @@ function VideoCard({ video, onDelete, onVideoUpdate }: {
       onVideoUpdate(updatedVideo);
 
       const defaultLanguage: SupportedLanguageType = 'en';
+      
+      let apiOptions: {
+        description?: string;
+        speed?: number;
+      } = {};
+      
+      // Only add description and speed if processing type is voiceover
+      if (video.processing_type === 'voiceover') {
+        // Use saved settings if available, otherwise use empty string for description
+        apiOptions.description = voiceoverSettings?.description || "";
+        apiOptions.speed = voiceoverSettings?.speed || 1.0;
+      }
+      
       const response = await videos.generateSubtitles(
         video.uuid, 
         video.subtitle_languages[0] || defaultLanguage,
-        { processing_type: video.processing_type || 'subtitles' }
+        apiOptions
       );
       
       if (response.status === 'completed' && response.subtitle_uuid && response.subtitle_url && response.language) {
@@ -1134,6 +1154,11 @@ export function DashboardOverview() {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle | null>(null);
   const [uploadedVideoUuid, setUploadedVideoUuid] = useState<string | null>(null);
+  const [voiceDescription, setVoiceDescription] = useState('');
+  const [speakingSpeed, setSpeakingSpeed] = useState(1.0);
+  const [isVoiceSettingsExpanded, setIsVoiceSettingsExpanded] = useState(false);
+  const [showVoiceoverModal, setShowVoiceoverModal] = useState(false);
+  const [voiceoverSettings, setVoiceoverSettings] = useState<{ description: string; speed: number }>({ description: '', speed: 1.0 });
 
   const fetchVideos = async () => {
     try {
@@ -1310,10 +1335,22 @@ export function DashboardOverview() {
 
         try {
           // Generate subtitles
+          let apiOptions: {
+            description?: string;
+            speed?: number;
+          } = {};
+          
+          // Only add description and speed if processing type is voiceover
+          if (processingType === 'voiceover') {
+            // Use saved settings if available, otherwise use empty string for description
+            apiOptions.description = voiceoverSettings?.description || "";
+            apiOptions.speed = voiceoverSettings?.speed || 1.0;
+          }
+          
           const generationResponse = await videos.generateSubtitles(
             uploadResponse.video_uuid,
             selectedLanguage,
-            { processing_type: processingType }
+            apiOptions
           );
 
           if (processingType !== 'subtitles' && generationResponse.dubbing_id) {
@@ -1670,189 +1707,365 @@ export function DashboardOverview() {
           setIsUploadModalOpen(open);
         }}
       >
-        <DialogContent className="sm:max-w-[425px] z-[60] bg-white">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <DialogTitle>Upload Video</DialogTitle>
-            </div>
-            <DialogDescription className="space-y-2 mt-6">
-              <p>Select a video file to process with AI</p>
-              <div className="mt-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
-                <div className="font-medium mb-1">File requirements:</div>
-                <ul className="list-disc list-inside space-y-1 text-blue-600">
-                  <li>Maximum file size: 20 MB</li>
-                  <li>Supported formats: MP4, WAV, WebM</li>
-                </ul>
+        <DialogContent className="sm:max-w-[500px] z-[60] bg-white max-h-[85vh] flex flex-col overflow-hidden">
+          <div className="flex flex-col h-full overflow-hidden">
+            <DialogHeader className="flex-none px-6 pt-6">
+              <div className="flex items-center gap-2">
+                <DialogTitle className='mb-4'>Upload Video</DialogTitle>
               </div>
-            </DialogDescription>
-          </DialogHeader>
+              <DialogDescription className="space-y-2 mt-6">
+                <p>Select a video file to process with AI</p>
+                <div className="mt-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                  <div className="font-medium mb-1">File requirements:</div>
+                  <ul className="list-disc list-inside space-y-1 text-blue-600">
+                    <li>Maximum file size: 20 MB</li>
+                    <li>Supported formats: MP4, WAV, WebM</li>
+                  </ul>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="grid gap-6 py-4">
-            {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200">
-                {error}
-              </div>
-            )}
+            <div className="flex-1 overflow-y-auto px-6 py-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+              {error && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200 mb-6">
+                  {error}
+                </div>
+              )}
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept="video/mp4,video/webm,audio/wav"
-              onChange={handleFileSelect}
-              disabled={isUploading}
-            />
-            
-            <div className="flex flex-col gap-6">
-              {selectedFile && (
-                <div className="flex flex-col">
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 relative">
-                    <div className="flex items-center gap-3 relative z-10">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <VideoIcon className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-base font-semibold text-gray-900 truncate">
-                            {selectedFile.name}
-                          </p>
-                          {!isUploading && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedFile(null);
-                                if (fileInputRef.current) {
-                                  fileInputRef.current.value = '';
-                                }
-                              }}
-                              className="text-gray-500 hover:text-gray-700 relative z-10"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="video/mp4,video/webm,audio/wav"
+                onChange={handleFileSelect}
+                disabled={isUploading}
+              />
+              
+              <div className="flex flex-col gap-6">
+                {selectedFile && (
+                  <div className="flex flex-col">
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 relative">
+                      <div className="flex items-center gap-3 relative z-10">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <VideoIcon className="w-6 h-6 text-blue-600" />
                         </div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-sm text-blue-600 font-medium">
-                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                          </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-base font-semibold text-gray-900 truncate">
+                              {selectedFile.name}
+                            </p>
+                            {!isUploading && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedFile(null);
+                                  if (fileInputRef.current) {
+                                    fileInputRef.current.value = '';
+                                  }
+                                }}
+                                className="text-gray-500 hover:text-gray-700 relative z-10"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-sm text-blue-600 font-medium">
+                              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Add Customize Subtitle Style Button */}
+                      <Button
+                        variant="outline"
+                        className="w-full mt-4 relative bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
+                        onClick={() => {
+                          const videoUrl = URL.createObjectURL(selectedFile);
+                          setVideoPreviewUrl(videoUrl);
+                          setShowStyleModal(true);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 relative z-10">
+                          <Palette className="w-4 h-4 text-blue-500 group-hover:text-blue-600 transition-colors" />
+                          <span>Customize Subtitle Style</span>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Target Language Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Target Language
+                      </label>
+                    </div>
+                  </div>
+                  <Select
+                    value={selectedLanguage}
+                    onValueChange={(value: SupportedLanguageType) => setSelectedLanguage(value)}
+                    disabled={isUploading}
+                  >
+                    <SelectTrigger className="w-full bg-white focus:ring-0 focus:ring-offset-0">
+                      <SelectValue placeholder="Choose subtitle language" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={8} className="bg-white z-[110] max-h-[300px] overflow-y-auto">
+                      {SUPPORTED_LANGUAGES.map((lang) => (
+                        <SelectItem 
+                          key={lang.code} 
+                          value={lang.code}
+                          className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900"
+                        >
+                          {lang.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Processing Type Selection */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium text-gray-700">Processing Type</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="w-4 h-4 text-gray-400" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs bg-gray-900 text-gray-100 border border-gray-700">
+                          <div className="space-y-3">
+                            <p className="font-medium">Processing Options:</p>
+                            <div className="space-y-2">
+                              <div>
+                                <p className="font-medium text-blue-300">Subtitles Only</p>
+                                <p className="text-sm text-gray-200">Generates accurate subtitles in your chosen target language</p>
+                              </div>
+                              <div>
+                                <p className="font-medium text-blue-300">AI Dubbing</p>
+                                <p className="text-sm text-gray-200">Translates audio while preserving original voice characteristics. Includes subtitles in the dubbed language.</p>
+                              </div>
+                              <div>
+                                <p className="font-medium text-blue-300">AI Voice Over</p>
+                                <p className="text-sm text-gray-200">Creates natural-sounding voice narration in target language. Includes matching subtitles.</p>
+                              </div>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <Select value={processingType} onValueChange={setProcessingType}>
+                    <SelectTrigger className="w-full bg-white focus:ring-0 focus:ring-offset-0 border-gray-200 hover:border-gray-300">
+                      <SelectValue placeholder="Select processing type" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={8} className="bg-white z-[110]">
+                      <SelectItem value="subtitles" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
+                        Subtitles Only
+                      </SelectItem>
+                      <SelectItem value="dubbing" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
+                        AI Dubbing
+                      </SelectItem>
+                      <SelectItem value="voiceover" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
+                        AI Voice Over
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Voice Over Settings Button */}
+                {processingType === 'voiceover' && (
+                  <Button
+                    variant="outline"
+                    className="w-full relative bg-gradient-to-r from-purple-50 to-white hover:from-purple-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-purple-200/80 hover:border-purple-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
+                    onClick={() => setShowVoiceoverModal(true)}
+                  >
+                    <div className="flex items-center gap-2 relative z-10">
+                      <Subtitles className="w-4 h-4 text-purple-500 group-hover:text-purple-600 transition-colors" />
+                      <span>Configure Voiceover Settings</span>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-50 via-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </Button>
+                )}
+
+                {/* Voice Over Settings Modal */}
+                <Dialog 
+                  open={showVoiceoverModal} 
+                  onOpenChange={(open) => {
+                    if (open) {
+                      // Reset to default values when modal opens
+                      setSpeakingSpeed(1.0);
+                    }
+                    setShowVoiceoverModal(open);
+                  }}
+                >
+                  <DialogContent className="sm:max-w-[600px] z-[60] bg-white max-h-[85vh] flex flex-col p-0 overflow-hidden border border-gray-200 shadow-xl">
+                    <DialogHeader className="p-6 pb-2">
+                      <DialogTitle className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        Configure Voice Over Settings
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-600 mt-2">
+                        Customize how the AI voice should narrate your video content
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto py-4 px-6 space-y-8 border-y border-gray-100 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                      {/* Voice Description Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-base font-medium text-gray-900">Voice Description</h4>
+                        </div>
+                        <div className="relative">
+                          <textarea
+                            placeholder="Example: This video showcases our new AI-powered smart home system, making everyday tasks easier and more efficient. It highlights key features like voice control, energy savings, and enhanced security, all designed to simplify your life."
+                            className="w-full min-h-[160px] px-4 py-3 text-base rounded-lg bg-white border-2 border-blue-200 hover:border-blue-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 focus:outline-none transition-all duration-200 placeholder:text-gray-600 placeholder:text-sm text-gray-900"
+                            value={voiceDescription}
+                            onChange={(e) => setVoiceDescription(e.target.value)}
+                          />
+                          <div className="mt-3 px-4 py-3 rounded-lg bg-blue-50/50 border border-blue-200 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <path d="M12 16v-4"></path>
+                              <path d="M12 8h.01"></path>
+                            </svg>
+                            <p className="text-sm text-gray-700">
+                              This description will only be used if the video has no audio.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Speaking Speed Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-base font-medium text-gray-900">Speaking Speed</h4>
+                            <div className="relative group">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 cursor-help">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 16v-4"></path>
+                                <path d="M12 8h.01"></path>
+                              </svg>
+                              <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                                Controls the speed at which the AI voice narrates your video. Higher values make the speech faster, while lower values make it slower.
+                              </div>
+                            </div>
+                          </div>
+                          <div className="px-3 py-1.5 rounded-full bg-blue-100 border border-blue-200">
+                            <span className="text-sm font-medium text-gray-900">
+                              {speakingSpeed}x
+                            </span>
+                          </div>
+                        </div>
+                        <div className="p-4 pt-8 pb-4 rounded-lg bg-white border border-blue-200 shadow-sm">
+                          <div className="relative mb-2">
+                            {/* Tick marks */}
+                            <div className="absolute -top-6 left-0 w-full flex justify-between px-1">
+                              <span className="text-xs font-medium text-gray-500">0.75x</span>
+                              <span className="text-xs font-medium text-gray-500">0.85x</span>
+                              <span className="text-xs font-medium text-gray-500">1.0x</span>
+                              <span className="text-xs font-medium text-gray-500">1.1x</span>
+                              <span className="text-xs font-medium text-gray-500">1.2x</span>
+                            </div>
+                            
+                            {/* Tick marks line */}
+                            <div className="absolute -top-2 left-0 w-full flex justify-between px-1">
+                              <div className="h-2 w-0.5 bg-gray-300"></div>
+                              <div className="h-2 w-0.5 bg-gray-300"></div>
+                              <div className="h-2 w-0.5 bg-gray-300"></div>
+                              <div className="h-2 w-0.5 bg-gray-300"></div>
+                              <div className="h-2 w-0.5 bg-gray-300"></div>
+                            </div>
+                            
+                            {/* Slider */}
+                            <input
+                              type="range"
+                              min="0.75"
+                              max="1.20"
+                              step="0.05"
+                              value={speakingSpeed}
+                              onChange={(e) => setSpeakingSpeed(parseFloat(e.target.value))}
+                              className="w-full h-1.5 bg-gradient-to-r from-blue-100 via-blue-200 to-blue-300 rounded-full appearance-none cursor-pointer
+                              [&::-webkit-slider-thumb]:w-5 
+                              [&::-webkit-slider-thumb]:h-5 
+                              [&::-webkit-slider-thumb]:appearance-none 
+                              [&::-webkit-slider-thumb]:bg-black 
+                              [&::-webkit-slider-thumb]:rounded-full 
+                              [&::-webkit-slider-thumb]:border-2
+                              [&::-webkit-slider-thumb]:border-black
+                              [&::-webkit-slider-thumb]:shadow-md
+                              [&::-webkit-slider-thumb]:transition-all
+                              [&::-webkit-slider-thumb]:duration-150
+                              [&::-webkit-slider-thumb]:hover:scale-110
+                              [&::-webkit-slider-thumb]:hover:shadow-lg
+                              group"
+                            />
+                            
+                            {/* Current value indicator - only shows on hover */}
+                            <div 
+                              className="absolute top-6 left-0 transform -translate-x-1/2 transition-all duration-150 opacity-0 group-hover:opacity-100"
+                              style={{ 
+                                left: `${((speakingSpeed - 0.75) / (1.20 - 0.75)) * 100}%`
+                              }}
+                            >
+                              <div className="flex flex-col items-center">
+                                <div className="w-0.5 h-3 bg-black"></div>
+                                <div className="px-2 py-1 bg-black text-white text-xs font-medium rounded-md shadow-sm">
+                                  {speakingSpeed}x
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Add Customize Subtitle Style Button */}
-                    <Button
-                      variant="outline"
-                      className="w-full mt-4 relative bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
-                      onClick={() => {
-                        const videoUrl = URL.createObjectURL(selectedFile);
-                        setVideoPreviewUrl(videoUrl);
-                        setShowStyleModal(true);
-                      }}
-                    >
-                      <div className="flex items-center gap-2 relative z-10">
-                        <Palette className="w-4 h-4 text-blue-500 group-hover:text-blue-600 transition-colors" />
-                        <span>Customize Subtitle Style</span>
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Target Language Section */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Target Language
-                    </label>
-                  </div>
-                </div>
-                <Select
-                  value={selectedLanguage}
-                  onValueChange={(value: SupportedLanguageType) => setSelectedLanguage(value)}
-                  disabled={isUploading}
-                >
-                  <SelectTrigger className="w-full bg-white">
-                    <SelectValue placeholder="Choose subtitle language" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={8} className="bg-white z-[110] max-h-[300px] overflow-y-auto">
-                    {SUPPORTED_LANGUAGES.map((lang) => (
-                      <SelectItem 
-                        key={lang.code} 
-                        value={lang.code}
-                        className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900"
+                    <div className="flex items-center justify-end gap-4 p-6 bg-blue-50/50 border-t border-blue-100">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowVoiceoverModal(false)}
+                        className="border-2 border-purple-200 hover:border-purple-300 text-purple-700 hover:text-purple-800 hover:bg-purple-50"
                       >
-                        {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          // Save the voice description and speed for later use
+                          setVoiceoverSettings({
+                            description: voiceDescription,
+                            speed: speakingSpeed
+                          });
+                          setShowVoiceoverModal(false);
+                        }}
+                        className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 shadow-lg shadow-purple-500/25 relative group"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                        <span className="relative">Save Settings</span>
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
-              {/* Processing Type Selection */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium text-gray-700">Processing Type</Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-4 h-4 text-gray-400" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs bg-gray-900 text-gray-100 border border-gray-700">
-                        <div className="space-y-3">
-                          <p className="font-medium">Processing Options:</p>
-                          <div className="space-y-2">
-                            <div>
-                              <p className="font-medium text-blue-300">Subtitles Only</p>
-                              <p className="text-sm text-gray-200">Generates accurate subtitles in your chosen target language</p>
-                            </div>
-                            <div>
-                              <p className="font-medium text-blue-300">AI Dubbing</p>
-                              <p className="text-sm text-gray-200">Translates audio while preserving original voice characteristics. Includes subtitles in the dubbed language.</p>
-                            </div>
-                            <div>
-                              <p className="font-medium text-blue-300">AI Voice Over</p>
-                              <p className="text-sm text-gray-200">Creates natural-sounding voice narration in target language. Includes matching subtitles.</p>
-                            </div>
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <Select value={processingType} onValueChange={setProcessingType}>
-                  <SelectTrigger className="w-full bg-white">
-                    <SelectValue placeholder="Select processing type" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={8} className="bg-white z-[110]">
-                    <SelectItem value="subtitles" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
-                      Subtitles Only
-                    </SelectItem>
-                    <SelectItem value="dubbing" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
-                      AI Dubbing
-                    </SelectItem>
-                    <SelectItem value="voiceover" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
-                      AI Voice Over
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Additional Info when AI processing is enabled */}
-              {processingType !== 'subtitles' && (
-                <div className="mt-3 pt-3 border-t border-blue-200">
-                  <div className="flex items-start gap-2 text-xs text-blue-700">
-                    <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <p>
-                      The AI processing may take a few minutes. You'll be able to preview and download 
-                      both the original and processed versions once complete.
-                    </p>
+                {processingType !== 'subtitles' && (
+                  <div className="mt-3 pt-3 border-t border-blue-200">
+                    <div className="flex items-start gap-2 text-xs text-blue-700">
+                      <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <p>
+                        The AI processing may take a few minutes. You'll be able to preview and download 
+                        both the original and processed versions once complete.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}                
+              </div>
+            </div>
 
+            <div className="flex-none px-6 py-4 bg-gray-50 border-t border-gray-200">
               <Button
                 onClick={selectedFile ? handleUpload : handleUploadClick}
                 disabled={isUploading || (!!selectedFile && !selectedLanguage)}
@@ -1908,6 +2121,7 @@ export function DashboardOverview() {
             video={video} 
             onDelete={handleVideoDelete}
             onVideoUpdate={handleVideoUpdate}
+            voiceoverSettings={voiceoverSettings}
           />
         ))}
       </div>

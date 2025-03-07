@@ -262,11 +262,26 @@ export const videos = {
     language: string,
     options?: { 
       subtitleStyle?: SubtitleStyle;
+      processing_type?: ProcessingType;
+      description?: string;
+      speed?: number;
     }
   ): Promise<SubtitleGenerationResponse> {
+    // Extract only description and speed for voiceover
+    const payload: any = {};
+    
+    // Add description and speed if they exist in options
+    if (options?.description !== undefined && options.description !== "") {
+      payload.description = options.description;
+    }
+    
+    if (options?.speed !== undefined) {
+      payload.speed = options.speed;
+    }
+    
     const response = await apiClient.post(
       `/videos/${videoUuid}/generate_subtitles`,
-      {}
+      payload
     );
     return response.data;
   },
