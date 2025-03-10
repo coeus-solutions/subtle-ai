@@ -73,7 +73,7 @@ export function Footer() {
           {/* Copyright line */}
           <div className="mt-16 pt-8 pb-4 border-t border-white/10 text-center">
             <p className="text-sm text-slate-400">
-              © {new Date().getFullYear()} Subtle AI. All rights reserved.
+              © {new Date().getFullYear()} LeanAI Ventures LLC. All rights reserved.
             </p>
           </div>
         </div>
