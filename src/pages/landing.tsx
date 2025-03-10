@@ -101,6 +101,34 @@ const FEATURES = [
     ]
   },
   {
+    id: 6,
+    icon: <MessageSquare className="w-8 h-8 text-amber-400" />,
+    title: "AI Voice Over",
+    description: "Create professional voice narration with customizable voice characteristics and speaking speed for videos without audio",
+    image: "/screenshots/voice-over.png",
+    color: "amber",
+    stats: [
+      { label: "Voice Options", value: "Male/Female" },
+      { label: "Speed Control", value: "Adjustable" },
+      { label: "Voice Quality", value: "Natural" },
+      { label: "Customization", value: "Full Control" }
+    ],
+    floatingElements: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-amber-400" />,
+        text: "Natural Voice",
+        position: "top-right",
+        color: "amber"
+      },
+      {
+        icon: <Subtitles className="w-4 h-4 text-blue-400" />,
+        text: "Matching Subtitles",
+        position: "bottom-left",
+        color: "blue"
+      }
+    ]
+  },
+  {
     id: 4,
     icon: <Presentation className="w-8 h-8 text-pink-400" />,
     title: "Easy Management",
@@ -280,19 +308,25 @@ const features = [
   },
   {
     title: "Multiple Languages",
-    description: "Generate subtitles and AI-dubbed audio in English, Spanish, French, German, Japanese, Russian, Italian, Chinese, Turkish, Korean, and Portuguese",
+    description: "Generate subtitles, AI voice-over, and dubbed audio in English, Spanish, French, German, Japanese, Russian, Italian, Chinese, Turkish, Korean, and Portuguese",
     icon: Globe,
     image: "/screenshots/target-language.png"
   },
   {
+    title: "AI Voice Over",
+    description: "Create professional voice narration with customizable voice characteristics and speaking speed for videos without audio",
+    icon: MessageSquare,
+    image: "/screenshots/voice-over.png"
+  },
+  {
     title: "Quick Processing",
-    description: "Fast and accurate subtitle generation and audio dubbing powered by advanced AI",
+    description: "Fast and accurate subtitle generation, voice-over, and audio dubbing powered by advanced AI",
     icon: Zap,
     image: "/screenshots/full-dashboard-page.png"
   },
   {
     title: "Usage Tracking",
-    description: "Monitor your subtitle generation and dubbing usage in real-time",
+    description: "Monitor your subtitle generation, voice-over, and dubbing usage in real-time",
     icon: Clock,
     image: "/screenshots/billing-n-usage.png"
   }
@@ -304,6 +338,9 @@ const benefits = [
   "Real-time style preview",
   "Multiple language support",
   "AI-powered audio dubbing",
+  "Professional voice-over narration",
+  "Male & female voice options",
+  "Adjustable speaking speed",
   "Accurate subtitle generation",
   "Easy subtitle downloads",
   "Simple video management",
@@ -322,6 +359,7 @@ const PRICING_TIERS = [
       "30 minutes included monthly",
       "All languages supported",
       "Basic subtitle customization",
+      "AI voice-over & dubbing",
       "Real-time preview & export",
       "Additional minutes at $1.25/min",
       "7-day video storage"
@@ -339,6 +377,7 @@ const PRICING_TIERS = [
       "120 minutes included monthly",
       "All languages supported",
       "Professional subtitle styling",
+      "Advanced voice-over customization",
       "Real-time preview & advanced export",
       "Additional minutes at $1.25/min",
       "30-day video storage"
@@ -356,6 +395,7 @@ const PRICING_TIERS = [
       "250 minutes included monthly",
       "Priority support & API access",
       "Advanced subtitle styling & branding",
+      "Premium voice-over options",
       "Team collaboration features",
       "Additional minutes at $1.25/min",
       "90-day video storage"
@@ -373,6 +413,7 @@ const PRICING_TIERS = [
       "480 minutes included monthly",
       "Dedicated support & custom integrations",
       "Enterprise subtitle styling & branding",
+      "Premium voice-over customization",
       "Advanced team management",
       "Additional minutes at $1.25/min",
       "Unlimited video storage"
@@ -493,6 +534,13 @@ const PROCESS_STEPS = [
                 transition={{ duration: 2, repeat: Infinity }}
               />
             </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-amber-400" />
+                <span className="text-amber-200 text-sm">Creating Voice Over</span>
+              </div>
+              <CheckCircle2 className="w-5 h-5 text-green-400" />
+            </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Languages className="w-5 h-5 text-purple-400" />
@@ -555,6 +603,10 @@ const PROCESS_STEPS = [
                   <Button size="sm" className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300">
                     <Subtitles className="w-4 h-4 mr-2" />
                     Subtitled
+                  </Button>
+                  <Button size="sm" className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300">
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Voice Over
                   </Button>
                   <Button size="sm" className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300">
                     <Languages className="w-4 h-4 mr-2" />
@@ -702,7 +754,7 @@ export function LandingPage() {
                 </span>
                 <br />
                 <span className="text-[0.85em] bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  With AI Dubbing & Styled Subtitles
+                  With AI-Powered Audio & Subtitles
                 </span>
               </motion.h1>
 
@@ -713,7 +765,7 @@ export function LandingPage() {
                 className="relative"
               >
                 <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-8">
-                  Instantly generate professional subtitles and dubbed audio in{' '}
+                  Create professional content with AI-powered subtitles, voice-over, and dubbing in{' '}
                   <AnimatePresence mode="wait">
                     <motion.span
                       key={currentLanguage}
@@ -726,20 +778,28 @@ export function LandingPage() {
                     </motion.span>
                   </AnimatePresence>
                   <br />
-                  with customizable styles using our advanced AI.
+                  with fully customizable styles and voices.
                 </p>
-                <div className="flex flex-wrap gap-4 justify-center items-center mt-8 mb-12">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
-                    <Type className="w-5 h-5 text-blue-400" />
-                    <span className="text-sm text-gray-300">Custom Styles</span>
+                <div className="flex flex-wrap gap-3 justify-center items-center mt-6 mb-10">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
+                    <Type className="w-4 h-4 text-blue-400" />
+                    <span className="text-xs text-gray-300">Subtitles</span>
                   </div>
-                  <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
-                    <Languages className="w-5 h-5 text-purple-400" />
-                    <span className="text-sm text-gray-300">AI Dubbing</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
+                    <MessageSquare className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs text-gray-300">Voice Over</span>
                   </div>
-                  <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
-                    <Sparkles className="w-5 h-5 text-pink-400" />
-                    <span className="text-sm text-gray-300">Real-time Preview</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
+                    <Languages className="w-4 h-4 text-purple-400" />
+                    <span className="text-xs text-gray-300">Dubbing</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
+                    <Palette className="w-4 h-4 text-pink-400" />
+                    <span className="text-xs text-gray-300">Custom Styles</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs text-gray-300">Real-time</span>
                   </div>
                 </div>
               </motion.div>
@@ -1251,7 +1311,7 @@ export function LandingPage() {
               Ready to Go Global?
             </h2>
             <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-              Transform your content with AI-powered subtitles, customizable styling, and natural voice dubbing for seamless global reach.
+              Transform your content with AI-powered subtitles, voice-over, dubbing, customizable styling, and seamless global reach.
             </p>
             <Link to="/register">
               <motion.div

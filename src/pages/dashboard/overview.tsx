@@ -21,10 +21,11 @@ import {
   Bold,
   Italic,
   ArrowUpDown,
-  Type
+  Type,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import { videos, subtitles, users, type Video, type Subtitle, type UserDetails, type SupportedLanguageType, type VideoUploadResponse } from '@/lib/api-client';
+import { videos, subtitles, users, type Video, type Subtitle, type UserDetails, type SupportedLanguageType, type VideoUploadResponse, ProcessingType, type VideoUploadRequest } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -50,6 +51,7 @@ import toast from 'react-hot-toast';
 import { useUserDetails } from '@/hooks/use-user-details';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en' as SupportedLanguageType, name: 'English' },
@@ -74,17 +76,22 @@ interface SubtitleStyle {
   alignment: 'left' | 'center' | 'right';
 }
 
-function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: { 
+function VideoCard({ 
+  video, 
+  onDelete, 
+  onVideoUpdate,
+  voiceoverSettings
+}: { 
   video: Video; 
   onDelete: (videoId: string) => void;
   onVideoUpdate: (updatedVideo: Video) => void;
-  enableDubbing: boolean;
+  voiceoverSettings?: { description: string; speed: number; voice_gender: 'male' | 'female' };
 }) {
   const [isSubtitleDownloading, setIsSubtitleDownloading] = useState<string | null>(null);
   const [isOriginalDownloading, setIsOriginalDownloading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showDubbedVersion, setShowDubbedVersion] = useState(true);
+  const [showProcessedVersion, setShowProcessedVersion] = useState(true);
   const [showBurnedVersion, setShowBurnedVersion] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,12 +102,12 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
     }
   }, [video.burned_video_url]);
 
-  // Update showDubbedVersion when dubbed_video_url changes
+  // Update showProcessedVersion when processed_video_url changes
   useEffect(() => {
-    if (video.dubbed_video_url) {
-      setShowDubbedVersion(true);
+    if (video.processed_video_url) {
+      setShowProcessedVersion(true);
     }
-  }, [video.dubbed_video_url]);
+  }, [video.processed_video_url]);
 
   const formatDuration = (minutes: number): string => {
     const totalSeconds = Math.floor(minutes * 60);
@@ -209,7 +216,6 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
       setIsGenerating(true);
       setError(null);
 
-      // Update video with initial processing message
       const updatedVideo: Video = {
         ...video,
         status: 'processing',
@@ -218,14 +224,30 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
       onVideoUpdate(updatedVideo);
 
       const defaultLanguage: SupportedLanguageType = 'en';
+      
+      let apiOptions: {
+        description?: string;
+        speed?: number;
+        voice_gender?: 'male' | 'female';
+      } = {};
+      
+      // Only add description, speed, and voice_gender if processing type is voiceover
+      if (video.processing_type === 'voiceover') {
+        // Use saved settings if available, otherwise use empty string for description
+        apiOptions.description = voiceoverSettings?.description || "";
+        apiOptions.speed = voiceoverSettings?.speed || 1.0;
+        apiOptions.voice_gender = voiceoverSettings?.voice_gender || "female";
+      }
+      
       const response = await videos.generateSubtitles(
         video.uuid, 
-        video.subtitle_languages[0] || defaultLanguage
+        video.subtitle_languages[0] || defaultLanguage,
+        apiOptions
       );
       
       if (response.status === 'completed' && response.subtitle_uuid && response.subtitle_url && response.language) {
-        // Only call burn_subtitles if dubbing is not enabled
-        if (!enableDubbing && response.subtitle_uuid) {
+        // Only call burn_subtitles if not dubbing or voiceover
+        if (video.processing_type === 'subtitles' && response.subtitle_uuid) {
           try {
             // Update message before burning subtitles
             onVideoUpdate({
@@ -240,13 +262,12 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
 
             if (burnResponse.status === 'completed') {
               toast.success('Subtitles generated and burned successfully!');
-              // Update video in the list with both subtitle and burned video info
               const completedVideo: Video = { 
                 ...video, 
                 status: 'completed', 
                 has_subtitles: true,
                 burned_video_url: burnResponse.burned_video_url,
-                dubbed_video_url: null,
+                processed_video_url: null,
                 dubbing_id: null,
                 is_dubbed_audio: false,
                 subtitle_languages: [response.language as SupportedLanguageType],
@@ -268,12 +289,12 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
             toast.error('Failed to burn subtitles into video');
           }
         } else {
-          // For dubbing flow, update message for polling
+          // For dubbing/voiceover flow, update message for polling
           if (response.dubbing_id) {
             onVideoUpdate({
               ...updatedVideo,
               dubbing_id: response.dubbing_id,
-              processingMessage: 'Dubbing Audio...'
+              processingMessage: video.processing_type === 'dubbing' ? 'Dubbing Audio...' : 'Generating Voiceover...'
             });
           }
         }
@@ -329,15 +350,15 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
 
   // Update the polling logic to maintain the "Dubbing Audio..." message
   useEffect(() => {
-    if (video.dubbing_id && !video.dubbed_video_url) {
+    if (video.dubbing_id && !video.processed_video_url) {
       // Keep "Dubbing Audio..." message during polling
       onVideoUpdate({
         ...video,
         status: 'processing',
-        processingMessage: 'Dubbing Audio...'
+        processingMessage: video.processing_type === 'dubbing' ? 'Dubbing Audio...' : 'Generating Voiceover...'
       });
     }
-  }, [video.dubbing_id, video.dubbed_video_url]);
+  }, [video.dubbing_id, video.processed_video_url]);
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this video and its subtitles?')) {
@@ -358,9 +379,9 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
 
   // Function to get button color based on current state
   const getButtonColorClass = () => {
-    if (video.dubbed_video_url && showDubbedVersion) {
+    if (video.processed_video_url && showProcessedVersion) {
       return "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-indigo-500/25";
-    } else if (!video.dubbed_video_url && video.burned_video_url && showBurnedVersion) {
+    } else if (!video.processed_video_url && video.burned_video_url && showBurnedVersion) {
       return "bg-gradient-to-r from-indigo-500 to-blue-500 text-white hover:from-indigo-600 hover:to-blue-600 shadow-lg shadow-blue-500/25";
     }
     return "bg-gradient-to-r from-slate-600 to-slate-700 text-white hover:from-slate-700 hover:to-slate-800 shadow-lg shadow-slate-500/25";
@@ -368,9 +389,13 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
 
   // Function to determine which video URL to show
   const getVideoSource = () => {
-    if (video.dubbed_video_url && showDubbedVersion) {
-      return video.burned_video_url || video.dubbed_video_url;
-    } else if (!video.dubbed_video_url && video.burned_video_url && showBurnedVersion) {
+    if (video.processing_type === 'dubbing' && video.burned_video_url && !showProcessedVersion && !showBurnedVersion) {
+      return video.video_url;
+    } else if (video.processing_type === 'dubbing' && video.burned_video_url) {
+      return video.burned_video_url;
+    } else if (video.processed_video_url && showProcessedVersion) {
+      return video.processed_video_url;
+    } else if (video.burned_video_url && showBurnedVersion) {
       return video.burned_video_url;
     }
     return video.video_url;
@@ -378,30 +403,30 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
 
   // Function to get the current video state label
   const getCurrentStateLabel = () => {
-    if (video.dubbed_video_url && showDubbedVersion) {
-      return 'Dubbed';
-    } else if (!video.dubbed_video_url && video.burned_video_url && showBurnedVersion) {
-      return 'Subtitled';
+    if (video.processed_video_url && showProcessedVersion) {
+      return video.processing_type === 'dubbing' ? 'Dubbed' : 'VoicedOver';
+    } else if (video.burned_video_url && showBurnedVersion) {
+      return video.processing_type === 'voiceover' ? 'VoicedOver' : 'Subtitled';
     }
     return 'Original';
   };
 
   // Function to get the next state label for tooltip
   const getNextStateLabel = () => {
-    if (video.dubbed_video_url) {
-      return showDubbedVersion ? 'original' : 'dubbed';
+    if (video.processed_video_url) {
+      return showProcessedVersion ? 'original' : (video.processing_type === 'dubbing' ? 'dubbed' : 'voicedover');
     }
-    return showBurnedVersion ? 'original' : 'subtitled';
+    return showBurnedVersion ? 'original' : (video.processing_type === 'voiceover' ? 'voicedover' : 'subtitled');
   };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow">
       {/* Video Preview Section */}
       <div className="aspect-video bg-gray-100 rounded-t-xl overflow-hidden relative">
-        {(video.video_url || video.dubbed_video_url || video.burned_video_url) && (
+        {(video.video_url || video.processed_video_url || video.burned_video_url) && (
           <>
             <video
-              key={getVideoSource()}
+              key={`${video.uuid}-${showProcessedVersion}-${showBurnedVersion}-${getVideoSource()}`}
               src={getVideoSource()}
               className="w-full h-full object-cover"
               controls
@@ -414,7 +439,7 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
                 <div className="text-center text-white">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
                   <p className="text-sm font-medium">
-                    {video.processingMessage || 'Generating Subtitles...'}
+                    {video.processingMessage || (video.processing_type === 'voiceover' ? 'Generating Voiceover...' : 'Generating Subtitles...')}
                   </p>
                 </div>
               </div>
@@ -424,15 +449,21 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
         {/* Video Source Switch */}
         <div className="absolute top-2 left-2 flex gap-2">
           {/* Case 3 & 4: Dubbed video */}
-          {video.dubbed_video_url && video.status === 'completed' && (
+          {video.processed_video_url && video.status === 'completed' && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => setShowDubbedVersion(!showDubbedVersion)}
+                    onClick={() => {
+                      setShowProcessedVersion(!showProcessedVersion);
+                      // Also reset burned version when switching to original
+                      if (showProcessedVersion) {
+                        setShowBurnedVersion(false);
+                      }
+                    }}
                     className={cn(
                       "px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm transition-colors duration-200 flex items-center gap-2 hover:scale-105 active:scale-95",
-                      showDubbedVersion
+                      showProcessedVersion
                         ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-indigo-500/25"
                         : "bg-gradient-to-r from-slate-600 to-slate-700 text-white hover:from-slate-700 hover:to-slate-800 shadow-lg shadow-slate-500/25",
                       "animate-pulse-once cursor-pointer"
@@ -450,7 +481,7 @@ function VideoCard({ video, onDelete, onVideoUpdate, enableDubbing }: {
           )}
 
           {/* Case 2: Non-dubbed video with burned URL */}
-          {!video.dubbed_video_url && video.burned_video_url && video.status === 'completed' && (
+          {!video.processed_video_url && video.burned_video_url && video.status === 'completed' && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1118,12 +1149,22 @@ export function DashboardOverview() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { fetchUserDetails } = useUserDetails();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [enableDubbing, setEnableDubbing] = useState(false);
+  const [processingType, setProcessingType] = useState<ProcessingType>('subtitles');
   const [showLanguageTooltip, setShowLanguageTooltip] = useState(false);
   const [showStyleModal, setShowStyleModal] = useState(false);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle | null>(null);
   const [uploadedVideoUuid, setUploadedVideoUuid] = useState<string | null>(null);
+  const [voiceDescription, setVoiceDescription] = useState('');
+  const [speakingSpeed, setSpeakingSpeed] = useState(1.0);
+  const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('female');
+  const [isVoiceSettingsExpanded, setIsVoiceSettingsExpanded] = useState(false);
+  const [showVoiceoverModal, setShowVoiceoverModal] = useState(false);
+  const [voiceoverSettings, setVoiceoverSettings] = useState<{ description: string; speed: number; voice_gender: 'male' | 'female' }>({ 
+    description: '', 
+    speed: 1.0,
+    voice_gender: 'female'
+  });
 
   const fetchVideos = async () => {
     try {
@@ -1221,15 +1262,16 @@ export function DashboardOverview() {
           uploadResponse = await videos.upload({
             file: selectedFile,
             language: selectedLanguage,
-            subtitleStyle: subtitleStyle || undefined
-          });
+            subtitleStyle: subtitleStyle || undefined,
+            processing_type: processingType as ProcessingType
+          } as VideoUploadRequest);
 
           // Reset modal state and close it
           setIsUploadModalOpen(false);
           setSelectedFile(null);
           setSelectedLanguage('en');
           setError(null);
-          setEnableDubbing(false);
+          setProcessingType('subtitles');
           setShowLanguageTooltip(false);
           setIsUploading(false);
           setVideoPreviewUrl(null);
@@ -1266,16 +1308,21 @@ export function DashboardOverview() {
           original_name: selectedFile.name,
           duration_minutes: 0,
           status: 'processing',
-          processingMessage: 'Generating Subtitles...',
+          processingMessage: processingType === 'voiceover' 
+            ? 'Generating Voiceover...' 
+            : processingType === 'dubbing' 
+              ? 'Dubbing Audio...' 
+              : 'Generating Subtitles...',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           has_subtitles: false,
           subtitle_languages: [],
           subtitles: [],
-          dubbed_video_url: null,
+          processed_video_url: null,
           dubbing_id: null,
           is_dubbed_audio: false,
-          burned_video_url: null
+          burned_video_url: null,
+          processing_type: processingType as ProcessingType
         };
 
         setVideoList(prev => [newVideo, ...prev]);
@@ -1285,7 +1332,7 @@ export function DashboardOverview() {
         setSelectedFile(null);
         setSelectedLanguage('en');
         setError(null);
-        setEnableDubbing(false);
+        setProcessingType('subtitles');
         setShowLanguageTooltip(false);
         setIsUploading(false);
         if (fileInputRef.current) {
@@ -1294,17 +1341,34 @@ export function DashboardOverview() {
 
         try {
           // Generate subtitles
+          let apiOptions: {
+            description?: string;
+            speed?: number;
+            voice_gender?: 'male' | 'female';
+          } = {};
+          
+          // Only add description, speed, and voice_gender if processing type is voiceover
+          if (processingType === 'voiceover') {
+            // Use saved settings if available, otherwise use empty string for description
+            apiOptions.description = voiceoverSettings?.description || "";
+            apiOptions.speed = voiceoverSettings?.speed || 1.0;
+            apiOptions.voice_gender = voiceoverSettings?.voice_gender || "female";
+          }
+          
           const generationResponse = await videos.generateSubtitles(
             uploadResponse.video_uuid,
             selectedLanguage,
-            { enable_dubbing: enableDubbing }
+            apiOptions
           );
 
-          if (enableDubbing && generationResponse.dubbing_id) {
-            // Update video with dubbing message
+          if (processingType !== 'subtitles' && generationResponse.dubbing_id) {
+            // Update video with appropriate message
             setVideoList(prev => prev.map(v => 
               v.uuid === uploadResponse.video_uuid 
-                ? { ...v, processingMessage: 'Dubbing Audio...' }
+                ? { 
+                    ...v, 
+                    processingMessage: processingType === 'dubbing' ? 'Dubbing Audio...' : 'Generating Voiceover...'
+                  }
                 : v
             ));
 
@@ -1364,12 +1428,13 @@ export function DashboardOverview() {
                         has_subtitles: true,
                         subtitle_languages,
                         subtitles,
-                        dubbed_video_url: dubbedVideoResponse.dubbed_video_url,
+                        processed_video_url: dubbedVideoResponse.processed_video_url,
                         dubbing_id: generationResponse.dubbing_id,
                         is_dubbed_audio: true,
                         burned_video_url: burnResponse.burned_video_url,
                         created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
+                        updated_at: new Date().toISOString(),
+                        processing_type: processingType
                       } as Video;
 
                       // Update video in list
@@ -1401,10 +1466,21 @@ export function DashboardOverview() {
             // Start polling
             pollDubbingStatus();
 
-            return enableDubbing 
-              ? "Video uploaded. Dubbing and subtitle generation in progress..."
-              : "Video uploaded and subtitles generated successfully!";
-          } else if (!enableDubbing && generationResponse.subtitle_uuid) {
+            if (processingType === 'dubbing' || processingType === 'voiceover') {
+              // Update message for dubbing/voiceover processing
+              setVideoList(prev => prev.map(v => 
+                v.uuid === uploadResponse.video_uuid 
+                  ? { ...v, processingMessage: processingType === 'dubbing' ? 'Dubbing Audio...' : 'Generating Voiceover...' }
+                  : v
+              ));
+              return "Video uploaded. Processing in progress...";
+            }
+
+            return "Video uploaded and subtitles generated successfully!";
+          }
+
+          // If we have a subtitle_uuid, proceed with burning subtitles
+          if (generationResponse.subtitle_uuid) {
             // Update message for burning subtitles
             setVideoList(prev => prev.map(v => 
               v.uuid === uploadResponse.video_uuid 
@@ -1412,7 +1488,6 @@ export function DashboardOverview() {
                 : v
             ));
 
-            // If dubbing is disabled and we have subtitles, burn them into the video
             try {
               const burnResponse = await videos.burnSubtitles(
                 uploadResponse.video_uuid,
@@ -1430,7 +1505,7 @@ export function DashboardOverview() {
                   subtitles: [{
                     uuid: generationResponse.subtitle_uuid,
                     language: generationResponse.language as SupportedLanguageType,
-                    subtitle_url: generationResponse.subtitle_url!,
+                    subtitle_url: generationResponse.subtitle_url || '',
                     created_at: new Date().toISOString(),
                     video_uuid: uploadResponse.video_uuid,
                     video_original_name: selectedFile.name,
@@ -1458,9 +1533,9 @@ export function DashboardOverview() {
           // Refresh user details to update minutes
           await fetchUserDetails();
 
-          return enableDubbing 
-            ? "Video uploaded. Dubbing and subtitle generation in progress..."
-            : "Video uploaded and subtitles generated successfully!";
+          return processingType === 'subtitles'
+            ? "Video uploaded and subtitles generated successfully!"
+            : "Video uploaded. Dubbing and subtitle generation in progress...";
         } catch (err: any) {
           // Update video status to failed
           setVideoList(prev => prev.map(v => {
@@ -1608,7 +1683,7 @@ export function DashboardOverview() {
             setSelectedFile(null);
             setSelectedLanguage('en');
             setError(null);
-            setEnableDubbing(false);
+            setProcessingType('subtitles');
             setShowLanguageTooltip(false);
             setIsUploading(false);
             setVideoPreviewUrl(null);
@@ -1619,205 +1694,408 @@ export function DashboardOverview() {
           setIsUploadModalOpen(open);
         }}
       >
-        <DialogContent className="sm:max-w-[425px] z-[60] bg-white">
-          <DialogHeader>
-            <DialogTitle>Upload Video</DialogTitle>
-            <DialogDescription className="space-y-2 mt-6">
-              <p>Select a video file to generate subtitles and optional AI dubbing</p>
-              <div className="mt-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
-                <div className="font-medium mb-1">File requirements:</div>
-                <ul className="list-disc list-inside space-y-1 text-blue-600">
-                  <li>Maximum file size: 20 MB</li>
-                  <li>Supported formats: MP4, WAV, WebM</li>
-                </ul>
+        <DialogContent className="sm:max-w-[500px] z-[60] bg-white max-h-[85vh] flex flex-col overflow-hidden">
+          <div className="flex flex-col h-full overflow-hidden">
+            <DialogHeader className="flex-none px-6 pt-6">
+              <div className="flex items-center gap-2">
+                <DialogTitle className='mb-4'>Upload Video</DialogTitle>
               </div>
-            </DialogDescription>
-          </DialogHeader>
+              <DialogDescription className="space-y-2 mt-6">
+                <p>Select a video file to process with AI</p>
+                <div className="mt-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                  <div className="font-medium mb-1">File requirements:</div>
+                  <ul className="list-disc list-inside space-y-1 text-blue-600">
+                    <li>Maximum file size: 20 MB</li>
+                    <li>Supported formats: MP4, WAV, WebM</li>
+                  </ul>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="grid gap-6 py-4">
-            {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200">
-                {error}
-              </div>
-            )}
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept="video/mp4,video/webm,audio/wav"
-              onChange={handleFileSelect}
-              disabled={isUploading}
-            />
-            
-            <div className="flex flex-col gap-6">
-              {selectedFile && (
-                <div className="flex flex-col">
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 relative">
-                    <div className="flex items-center gap-3 relative z-10">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <VideoIcon className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-base font-semibold text-gray-900 truncate">
-                            {selectedFile.name}
-                          </p>
-                          {!isUploading && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedFile(null);
-                                if (fileInputRef.current) {
-                                  fileInputRef.current.value = '';
-                                }
-                              }}
-                              className="text-gray-500 hover:text-gray-700 relative z-10"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-sm text-blue-600 font-medium">
-                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Add Customize Subtitle Style Button */}
-                    <Button
-                      variant="outline"
-                      className="w-full mt-4 relative bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
-                      onClick={() => {
-                        const videoUrl = URL.createObjectURL(selectedFile);
-                        setVideoPreviewUrl(videoUrl);
-                        setShowStyleModal(true);
-                      }}
-                    >
-                      <div className="flex items-center gap-2 relative z-10">
-                        <Palette className="w-4 h-4 text-blue-500 group-hover:text-blue-600 transition-colors" />
-                        <span>Customize Subtitle Style</span>
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </Button>
-                  </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+              {error && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200 mb-6">
+                  {error}
                 </div>
               )}
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">
-                    Target Language for Subtitles
-                  </label>
-                </div>
-                <Select
-                  value={selectedLanguage}
-                  onValueChange={(value: SupportedLanguageType) => setSelectedLanguage(value)}
-                  disabled={isUploading}
-                >
-                  <SelectTrigger className="w-full bg-white">
-                    <SelectValue placeholder="Choose subtitle language" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={8} className="bg-white z-[110] max-h-[300px] overflow-y-auto">
-                    {SUPPORTED_LANGUAGES.map((lang) => (
-                      <SelectItem 
-                        key={lang.code} 
-                        value={lang.code}
-                        className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900"
-                      >
-                        {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Enhanced Dubbing Toggle */}
-              <div className={cn(
-                "p-4 rounded-lg border transition-colors duration-200",
-                enableDubbing 
-                  ? "bg-blue-50/50 border-blue-200 shadow-sm" 
-                  : "bg-gray-50 border-gray-200"
-              )}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className={cn(
-                      "mt-1 p-2 rounded-lg transition-colors duration-200",
-                      enableDubbing ? "bg-blue-100" : "bg-gray-100"
-                    )}>
-                      <Subtitles className={cn(
-                        "w-5 h-5 transition-colors duration-200",
-                        enableDubbing ? "text-blue-600" : "text-gray-600"
-                      )} />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-sm font-medium transition-colors duration-200",
-                          enableDubbing ? "text-blue-900" : "text-gray-700"
-                        )}>
-                          Audio Dubbing
-                        </span>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Info className={cn(
-                                "w-4 h-4 transition-colors duration-200",
-                                enableDubbing ? "text-blue-400" : "text-gray-400"
-                              )} />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-xs bg-gray-900 text-gray-100 border border-gray-700">
-                              <div className="space-y-2">
-                                <p className="font-medium">Audio Dubbing Feature</p>
-                                <p className="text-sm text-gray-200">
-                                  When enabled, we'll use advanced AI to dub your video in the target language. Subtitles will also be generated for the dubbed audio.
-                                </p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="video/mp4,video/webm,audio/wav"
+                onChange={handleFileSelect}
+                disabled={isUploading}
+              />
+              
+              <div className="flex flex-col gap-6">
+                {selectedFile && (
+                  <div className="flex flex-col">
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 relative">
+                      <div className="flex items-center gap-3 relative z-10">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <VideoIcon className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-base font-semibold text-gray-900 truncate">
+                              {selectedFile.name}
+                            </p>
+                            {!isUploading && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedFile(null);
+                                  if (fileInputRef.current) {
+                                    fileInputRef.current.value = '';
+                                  }
+                                }}
+                                className="text-gray-500 hover:text-gray-700 relative z-10"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-sm text-blue-600 font-medium">
+                              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-xs text-gray-500 mt-0.5">
-                        AI will dub your video in the target language
-                      </span>
+
+                      {/* Add Customize Subtitle Style Button */}
+                      <Button
+                        variant="outline"
+                        className="w-full mt-4 relative bg-gradient-to-r from-gray-50 to-white hover:from-gray-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
+                        onClick={() => {
+                          const videoUrl = URL.createObjectURL(selectedFile);
+                          setVideoPreviewUrl(videoUrl);
+                          setShowStyleModal(true);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 relative z-10">
+                          <Palette className="w-4 h-4 text-blue-500 group-hover:text-blue-600 transition-colors" />
+                          <span>Customize Subtitle Style</span>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </Button>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={enableDubbing}
-                    onClick={() => setEnableDubbing(!enableDubbing)}
-                    className={cn(
-                      "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-                      enableDubbing ? "bg-blue-600" : "bg-gray-200"
-                    )}
+                )}
+
+                {/* Target Language Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Target Language
+                      </label>
+                    </div>
+                  </div>
+                  <Select
+                    value={selectedLanguage}
+                    onValueChange={(value: SupportedLanguageType) => setSelectedLanguage(value)}
+                    disabled={isUploading}
                   >
-                    <span
-                      className={cn(
-                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                        enableDubbing ? "translate-x-5" : "translate-x-0"
-                      )}
-                    />
-                  </button>
+                    <SelectTrigger className="w-full bg-white focus:ring-0 focus:ring-offset-0">
+                      <SelectValue placeholder="Choose subtitle language" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={8} className="bg-white z-[110] max-h-[300px] overflow-y-auto">
+                      {SUPPORTED_LANGUAGES.map((lang) => (
+                        <SelectItem 
+                          key={lang.code} 
+                          value={lang.code}
+                          className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900"
+                        >
+                          {lang.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Additional Info when dubbing is enabled */}
-                {enableDubbing && (
+                {/* Processing Type Selection */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium text-gray-700">Processing Type</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="w-4 h-4 text-gray-400" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs bg-gray-900 text-gray-100 border border-gray-700">
+                          <div className="space-y-3">
+                            <p className="font-medium">Processing Options:</p>
+                            <div className="space-y-2">
+                              <div>
+                                <p className="font-medium text-blue-300">Subtitles Only</p>
+                                <p className="text-sm text-gray-200">Generates accurate subtitles in your chosen target language</p>
+                              </div>
+                              <div>
+                                <p className="font-medium text-blue-300">AI Dubbing</p>
+                                <p className="text-sm text-gray-200">Translates audio while preserving original voice characteristics. Includes subtitles in the dubbed language.</p>
+                              </div>
+                              <div>
+                                <p className="font-medium text-blue-300">AI Voice Over</p>
+                                <p className="text-sm text-gray-200">Creates natural-sounding voice narration in target language. Includes matching subtitles.</p>
+                              </div>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <Select value={processingType} onValueChange={setProcessingType}>
+                    <SelectTrigger className="w-full bg-white focus:ring-0 focus:ring-offset-0 border-gray-200 hover:border-gray-300">
+                      <SelectValue placeholder="Select processing type" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={8} className="bg-white z-[110]">
+                      <SelectItem value="subtitles" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
+                        Subtitles Only
+                      </SelectItem>
+                      <SelectItem value="dubbing" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
+                        AI Dubbing
+                      </SelectItem>
+                      <SelectItem value="voiceover" className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 focus:text-gray-900">
+                        AI Voice Over
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Voice Over Settings Button */}
+                {processingType === 'voiceover' && (
+                  <Button
+                    variant="outline"
+                    className="w-full relative bg-gradient-to-r from-purple-50 to-white hover:from-purple-100 hover:to-gray-50 text-gray-600 hover:text-gray-800 border-2 border-purple-200/80 hover:border-purple-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 group"
+                    onClick={() => setShowVoiceoverModal(true)}
+                  >
+                    <div className="flex items-center gap-2 relative z-10">
+                      <Subtitles className="w-4 h-4 text-purple-500 group-hover:text-purple-600 transition-colors" />
+                      <span>Configure Voiceover Settings</span>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-50 via-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </Button>
+                )}
+
+                {/* Voice Over Settings Modal */}
+                <Dialog 
+                  open={showVoiceoverModal} 
+                  onOpenChange={(open) => {
+                    if (open) {
+                      // Reset to default values when modal opens
+                      setSpeakingSpeed(1.0);
+                      setVoiceGender('female');
+                    }
+                    setShowVoiceoverModal(open);
+                  }}
+                >
+                  <DialogContent className="sm:max-w-[600px] z-[60] bg-white max-h-[85vh] flex flex-col p-0 overflow-hidden border border-gray-200 shadow-xl">
+                    <DialogHeader className="p-6 pb-2">
+                      <DialogTitle className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        Configure Voice Over Settings
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-600 mt-2">
+                        Customize how the AI voice should narrate your video content
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto py-4 px-6 space-y-8 border-y border-gray-100 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                      {/* Voice Description Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-base font-medium text-gray-900">Voice Description</h4>
+                        </div>
+                        <div className="relative">
+                          <textarea
+                            placeholder="Example: This video showcases our new AI-powered smart home system, making everyday tasks easier and more efficient. It highlights key features like voice control, energy savings, and enhanced security, all designed to simplify your life."
+                            className="w-full min-h-[160px] px-4 py-3 text-base rounded-lg bg-white border-2 border-blue-200 hover:border-blue-300 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 focus:outline-none transition-all duration-200 placeholder:text-gray-600 placeholder:text-sm text-gray-900"
+                            value={voiceDescription}
+                            onChange={(e) => setVoiceDescription(e.target.value)}
+                          />
+                          <div className="mt-3 px-4 py-3 rounded-lg bg-blue-50/50 border border-blue-200 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <path d="M12 16v-4"></path>
+                              <path d="M12 8h.01"></path>
+                            </svg>
+                            <p className="text-sm text-gray-700">
+                              This description will only be used if the video has no audio.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Speaking Speed Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-base font-medium text-gray-900">Speaking Speed</h4>
+                            <div className="relative group">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 cursor-help">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 16v-4"></path>
+                                <path d="M12 8h.01"></path>
+                              </svg>
+                              <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                                Controls the speed at which the AI voice narrates your video. Higher values make the speech faster, while lower values make it slower.
+                              </div>
+                            </div>
+                          </div>
+                          <div className="px-3 py-1.5 rounded-full bg-blue-100 border border-blue-200">
+                            <span className="text-sm font-medium text-gray-900">
+                              {speakingSpeed}x
+                            </span>
+                          </div>
+                        </div>
+                        <div className="p-4 pt-8 pb-4 rounded-lg bg-white border border-blue-200 shadow-sm">
+                          <div className="relative mb-2">
+                            {/* Tick marks */}
+                            <div className="absolute -top-6 left-0 w-full flex justify-between px-1">
+                              <span className="text-xs font-medium text-gray-500">0.75x</span>
+                              <span className="text-xs font-medium text-gray-500">0.85x</span>
+                              <span className="text-xs font-medium text-gray-500">1.0x</span>
+                              <span className="text-xs font-medium text-gray-500">1.1x</span>
+                              <span className="text-xs font-medium text-gray-500">1.2x</span>
+                            </div>
+                            
+                            {/* Tick marks line */}
+                            <div className="absolute -top-2 left-0 w-full flex justify-between px-1">
+                              <div className="h-2 w-0.5 bg-gray-300"></div>
+                              <div className="h-2 w-0.5 bg-gray-300"></div>
+                              <div className="h-2 w-0.5 bg-gray-300"></div>
+                              <div className="h-2 w-0.5 bg-gray-300"></div>
+                              <div className="h-2 w-0.5 bg-gray-300"></div>
+                            </div>
+                            
+                            {/* Slider */}
+                            <input
+                              type="range"
+                              min="0.75"
+                              max="1.20"
+                              step="0.05"
+                              value={speakingSpeed}
+                              onChange={(e) => setSpeakingSpeed(parseFloat(e.target.value))}
+                              className="w-full h-1.5 bg-gradient-to-r from-blue-100 via-blue-200 to-blue-300 rounded-full appearance-none cursor-pointer
+                              [&::-webkit-slider-thumb]:w-5 
+                              [&::-webkit-slider-thumb]:h-5 
+                              [&::-webkit-slider-thumb]:appearance-none 
+                              [&::-webkit-slider-thumb]:bg-black 
+                              [&::-webkit-slider-thumb]:rounded-full 
+                              [&::-webkit-slider-thumb]:border-2
+                              [&::-webkit-slider-thumb]:border-black
+                              [&::-webkit-slider-thumb]:shadow-md
+                              [&::-webkit-slider-thumb]:transition-all
+                              [&::-webkit-slider-thumb]:duration-150
+                              [&::-webkit-slider-thumb]:hover:scale-110
+                              [&::-webkit-slider-thumb]:hover:shadow-lg
+                              group"
+                            />
+                            
+                            {/* Current value indicator - only shows on hover */}
+                            <div 
+                              className="absolute top-6 left-0 transform -translate-x-1/2 transition-all duration-150 opacity-0 group-hover:opacity-100"
+                              style={{ 
+                                left: `${((speakingSpeed - 0.75) / (1.20 - 0.75)) * 100}%`
+                              }}
+                            >
+                              <div className="flex flex-col items-center">
+                                <div className="w-0.5 h-3 bg-black"></div>
+                                <div className="px-2 py-1 bg-black text-white text-xs font-medium rounded-md shadow-sm">
+                                  {speakingSpeed}x
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Voice Gender Section */}
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-base font-medium text-gray-900">Voice Gender</h4>
+                          <div className="relative group">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 cursor-help">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <path d="M12 16v-4"></path>
+                              <path d="M12 8h.01"></path>
+                            </svg>
+                            <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                              Select the gender of the AI voice that will narrate your video.
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-4 p-4 rounded-lg bg-white border border-blue-200 shadow-sm">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="voiceGender"
+                              value="female"
+                              checked={voiceGender === 'female'}
+                              onChange={() => setVoiceGender('female')}
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                            />
+                            <span className="text-gray-900">Female</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="voiceGender"
+                              value="male"
+                              checked={voiceGender === 'male'}
+                              onChange={() => setVoiceGender('male')}
+                              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 focus:ring-2"
+                            />
+                            <span className="text-gray-900">Male</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-4 p-6 bg-blue-50/50 border-t border-blue-100">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowVoiceoverModal(false)}
+                        className="border-2 border-purple-200 hover:border-purple-300 text-purple-700 hover:text-purple-800 hover:bg-purple-50"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          // Save the voice description and speed for later use
+                          setVoiceoverSettings({
+                            description: voiceDescription,
+                            speed: speakingSpeed,
+                            voice_gender: voiceGender
+                          });
+                          setShowVoiceoverModal(false);
+                        }}
+                        className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 shadow-lg shadow-purple-500/25 relative group"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                        <span className="relative">Save Settings</span>
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {processingType !== 'subtitles' && (
                   <div className="mt-3 pt-3 border-t border-blue-200">
                     <div className="flex items-start gap-2 text-xs text-blue-700">
                       <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
                       <p>
-                        The dubbing process may take a few minutes. You'll be able to preview and download 
-                        both the original and dubbed versions once complete.
+                        The AI processing may take a few minutes. You'll be able to preview and download 
+                        both the original and processed versions once complete.
                       </p>
                     </div>
                   </div>
-                )}
+                )}                
               </div>
+            </div>
 
+            <div className="flex-none px-6 py-4 bg-gray-50 border-t border-gray-200">
               <Button
                 onClick={selectedFile ? handleUpload : handleUploadClick}
                 disabled={isUploading || (!!selectedFile && !selectedLanguage)}
@@ -1832,7 +2110,7 @@ export function DashboardOverview() {
                 ) : selectedFile ? (
                   <>
                     <Upload className="w-4 h-4 mr-2" />
-                    Generate Subtitles
+                    Start Processing
                   </>
                 ) : (
                   <>
@@ -1873,7 +2151,7 @@ export function DashboardOverview() {
             video={video} 
             onDelete={handleVideoDelete}
             onVideoUpdate={handleVideoUpdate}
-            enableDubbing={enableDubbing}
+            voiceoverSettings={voiceoverSettings}
           />
         ))}
       </div>
