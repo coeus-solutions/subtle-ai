@@ -1,5 +1,8 @@
 import socketClusterClient from 'socketcluster-client';
 
+// Add feature flag to control socketcluster connection
+const ENABLE_SOCKETCLUSTER = false; // Set to false to disable connection
+
 interface SubscriptionHandlers {
   [key: string]: {
     [key: string]: (data: any) => void;
@@ -22,7 +25,25 @@ class SocketClusterClient {
   public connected: boolean = false;
 
   constructor() {
-    console.log('creating new sc client')
+    console.log('creating new sc client');
+    
+    if (!ENABLE_SOCKETCLUSTER) {
+      console.log('SocketCluster disabled by feature flag');
+      // Initialize empty socket to prevent null reference errors
+      this._socket = {
+        listener: () => ({ once: () => Promise.resolve() }),
+        authenticate: () => Promise.resolve(),
+        deauthenticate: () => {},
+        transmitPublish: () => Promise.resolve(),
+        subscribe: () => ({
+          listener: () => ({ once: () => Promise.resolve() }),
+          close: () => {},
+          SUBSCRIBED: 'SUBSCRIBED',
+          state: 'SUBSCRIBED'
+        })
+      };
+      return;
+    }
     
     const socketUrl = import.meta.env.VITE_SOCKETCLUSTER_URL || 'ws://localhost:7001/socketcluster';
     const { hostname, pathname, protocol } = new URL(socketUrl);
@@ -59,6 +80,11 @@ class SocketClusterClient {
   }
 
   public async authenticate() {
+    if (!ENABLE_SOCKETCLUSTER) {
+      console.log('SocketCluster authenticate called but connection is disabled');
+      return Promise.resolve();
+    }
+
     const token = localStorage.getItem('token');
     if (token && this._socket) {
       try {
@@ -74,6 +100,11 @@ class SocketClusterClient {
   }
 
   public deauthenticate() {
+    if (!ENABLE_SOCKETCLUSTER) {
+      console.log('SocketCluster deauthenticate called but connection is disabled');
+      return;
+    }
+
     if (this._socket) {
       this._socket.deauthenticate();
       // Clear all subscriptions
@@ -88,10 +119,19 @@ class SocketClusterClient {
   }
 
   public publish(topic: string, data: any): Promise<void> {
+    if (!ENABLE_SOCKETCLUSTER) {
+      console.log(`SocketCluster publish called but connection is disabled. Topic: ${topic}`);
+      return Promise.resolve();
+    }
     return this._socket.transmitPublish(topic, JSON.stringify(data));
   }
 
   public subscribe(topic: string, handler: (data: any) => void): string {
+    if (!ENABLE_SOCKETCLUSTER) {
+      console.log(`SocketCluster subscribe called but connection is disabled. Topic: ${topic}`);
+      return this._randomId();
+    }
+
     if (!this._subscriptionHandlers[topic]) {
       this._subscriptionHandlers[topic] = {};
     }
@@ -109,6 +149,11 @@ class SocketClusterClient {
   }
 
   public unsubscribe(subscriptionId: string): void {
+    if (!ENABLE_SOCKETCLUSTER) {
+      console.log(`SocketCluster unsubscribe called but connection is disabled. ID: ${subscriptionId}`);
+      return;
+    }
+
     const topic = this._subscriptionIds[subscriptionId];
     if (topic) {
       delete this._subscriptionIds[subscriptionId];
@@ -133,7 +178,7 @@ class SocketClusterClient {
   }
 
   private _initSubscription(topic: string): void {
-    if (this._topics[topic] !== false) {
+    if (!ENABLE_SOCKETCLUSTER || this._topics[topic] !== false) {
       return;
     }
 
