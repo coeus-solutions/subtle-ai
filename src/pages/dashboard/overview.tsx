@@ -22,7 +22,8 @@ import {
   Italic,
   ArrowUpDown,
   Type,
-  ChevronDown
+  ChevronDown,
+  Share2
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { videos, subtitles, users, type Video, type Subtitle, type UserDetails, type SupportedLanguageType, type VideoUploadResponse, ProcessingType, type VideoUploadRequest } from '@/lib/api-client';
@@ -47,7 +48,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import toast from 'react-hot-toast';
+import { Toaster, toast } from 'sonner';
 import { useUserDetails } from '@/hooks/use-user-details';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -91,6 +92,7 @@ function VideoCard({
   const [isOriginalDownloading, setIsOriginalDownloading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [showProcessedVersion, setShowProcessedVersion] = useState(true);
   const [showBurnedVersion, setShowBurnedVersion] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -201,7 +203,7 @@ function VideoCard({
       }
     } catch (error) {
       console.error('Download failed:', error);
-      toast.error('Failed to download. Please try again.');
+      toast.error('Download failed');
     } finally {
       if (type === 'subtitle') {
         setIsSubtitleDownloading(null);
@@ -368,10 +370,10 @@ function VideoCard({
     try {
       setIsDeleting(true);
       await onDelete(video.uuid);
+
     } catch (error) {
       console.error('Delete failed:', error);
-      // Show error toast
-      toast.error("Failed to delete video. Please try again.");
+      toast.error('Delete failed');
     } finally {
       setIsDeleting(false);
     }
@@ -531,28 +533,65 @@ function VideoCard({
               {formatDate(video.created_at)}
             </div>
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0"
-                >
-                  {isDeleting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="bg-gray-900 text-gray-100 border border-gray-700">
-                Delete video
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        setIsSharing(true);
+                        const response = await videos.share(video.uuid);
+                        const watchUrl = `${window.location.origin}/watch/${response.share_uuid}`;
+                        await navigator.clipboard.writeText(watchUrl);
+                        toast.success('Share link copied to clipboard!');
+                      } catch (error) {
+                        console.error('Share failed:', error);
+                        toast.error('Failed to share video');
+                      } finally {
+                        setIsSharing(false);
+                      }
+                    }}
+                    disabled={isSharing}
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 shrink-0"
+                  >
+                    {isSharing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Share2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="bg-gray-900 text-gray-100 border border-gray-700">
+                  Share video
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0"
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="bg-gray-900 text-gray-100 border border-gray-700">
+                  Delete video
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
 
         {/* Actions Section */}
@@ -1242,10 +1281,6 @@ export function DashboardOverview() {
     setSelectedFile(file);
     setError(null);
     
-    // Show success toast
-    toast.success("File selected! Choose the target language.", {
-      icon: '🎥',
-    });
   };
 
   const handleUpload = async () => {
@@ -1280,310 +1315,301 @@ export function DashboardOverview() {
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
-        } catch (err: any) {
-          // Handle upload API errors
-          const errorMessage = err.response?.data?.detail || 'Failed to upload video';
-          const statusCode = err.response?.status;
 
-          switch (statusCode) {
-            case 400:
-              throw new Error(`Invalid request: ${errorMessage}`);
-            case 413:
-              throw new Error('File size too large. Maximum size is 20MB.');
-            case 415:
-              throw new Error('Unsupported file format. Please use MP4, WebM, or WAV.');
-            case 422:
-              throw new Error(`Validation error: ${errorMessage}`);
-            case 500:
-              throw new Error('Server error. Please try again later.');
-            default:
-              throw new Error(errorMessage);
-          }
-        }
+          // Add video to list with initial processing message
+          const newVideo: Video = {
+            uuid: uploadResponse.video_uuid,
+            video_url: uploadResponse.file_url,
+            original_name: selectedFile.name,
+            duration_minutes: 0,
+            status: 'processing',
+            processingMessage: processingType === 'voiceover' 
+              ? 'Generating Voiceover...' 
+              : processingType === 'dubbing' 
+                ? 'Dubbing Audio...' 
+                : 'Generating Subtitles...',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            has_subtitles: false,
+            subtitle_languages: [],
+            subtitles: [],
+            processed_video_url: null,
+            dubbing_id: null,
+            is_dubbed_audio: false,
+            burned_video_url: null,
+            processing_type: processingType as ProcessingType
+          };
 
-        // Add video to list with initial processing message
-        const newVideo: Video = {
-          uuid: uploadResponse.video_uuid,
-          video_url: uploadResponse.file_url,
-          original_name: selectedFile.name,
-          duration_minutes: 0,
-          status: 'processing',
-          processingMessage: processingType === 'voiceover' 
-            ? 'Generating Voiceover...' 
-            : processingType === 'dubbing' 
-              ? 'Dubbing Audio...' 
-              : 'Generating Subtitles...',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          has_subtitles: false,
-          subtitle_languages: [],
-          subtitles: [],
-          processed_video_url: null,
-          dubbing_id: null,
-          is_dubbed_audio: false,
-          burned_video_url: null,
-          processing_type: processingType as ProcessingType
-        };
-
-        setVideoList(prev => [newVideo, ...prev]);
-        
-        // Reset modal state and close it
-        setIsUploadModalOpen(false);
-        setSelectedFile(null);
-        setSelectedLanguage('en');
-        setError(null);
-        setProcessingType('subtitles');
-        setShowLanguageTooltip(false);
-        setIsUploading(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-
-        try {
-          // Generate subtitles
-          let apiOptions: {
-            description?: string;
-            speed?: number;
-            voice_gender?: 'male' | 'female';
-          } = {};
+          setVideoList(prev => [newVideo, ...prev]);
           
-          // Only add description, speed, and voice_gender if processing type is voiceover
-          if (processingType === 'voiceover') {
-            // Use saved settings if available, otherwise use empty string for description
-            apiOptions.description = voiceoverSettings?.description || "";
-            apiOptions.speed = voiceoverSettings?.speed || 1.0;
-            apiOptions.voice_gender = voiceoverSettings?.voice_gender || "female";
+          // Reset modal state and close it
+          setIsUploadModalOpen(false);
+          setSelectedFile(null);
+          setSelectedLanguage('en');
+          setError(null);
+          setProcessingType('subtitles');
+          setShowLanguageTooltip(false);
+          setIsUploading(false);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
           }
-          
-          const generationResponse = await videos.generateSubtitles(
-            uploadResponse.video_uuid,
-            selectedLanguage,
-            apiOptions
-          );
 
-          if (processingType !== 'subtitles' && generationResponse.dubbing_id) {
-            // Update video with appropriate message
-            setVideoList(prev => prev.map(v => 
-              v.uuid === uploadResponse.video_uuid 
-                ? { 
-                    ...v, 
-                    processingMessage: processingType === 'dubbing' ? 'Dubbing Audio...' : 'Generating Voiceover...'
-                  }
-                : v
-            ));
+          try {
+            // Generate subtitles
+            let apiOptions: {
+              description?: string;
+              speed?: number;
+              voice_gender?: 'male' | 'female';
+            } = {};
+            
+            // Only add description, speed, and voice_gender if processing type is voiceover
+            if (processingType === 'voiceover') {
+              // Use saved settings if available, otherwise use empty string for description
+              apiOptions.description = voiceoverSettings?.description || "";
+              apiOptions.speed = voiceoverSettings?.speed || 1.0;
+              apiOptions.voice_gender = voiceoverSettings?.voice_gender || "female";
+            }
+            
+            const generationResponse = await videos.generateSubtitles(
+              uploadResponse.video_uuid,
+              selectedLanguage,
+              apiOptions
+            );
 
-            // Start polling for dubbing status
-            const pollDubbingStatus = async () => {
-              if (!generationResponse.dubbing_id) return;
-              
-              try {
-                const statusResponse = await videos.checkDubbingStatus(
-                  uploadResponse.video_uuid,
-                  generationResponse.dubbing_id
-                );
-
-                if (statusResponse.status === 'dubbed') {
-                  try {
-                    // First get the dubbed video
-                    const dubbedVideoResponse = await videos.getDubbedVideo(
-                      uploadResponse.video_uuid,
-                      generationResponse.dubbing_id
-                    );
-
-                    // Then get the transcript
-                    const transcriptResponse = await videos.getTranscriptForDub(
-                      uploadResponse.video_uuid,
-                      generationResponse.dubbing_id
-                    );
-
-                    if (transcriptResponse.language && transcriptResponse.subtitle_uuid && transcriptResponse.subtitle_url) {
-                      const language = transcriptResponse.language as SupportedLanguageType;
-
-                      // Call burn_subtitles API with the transcript
-                      const burnResponse = await videos.burnSubtitles(
-                        uploadResponse.video_uuid,
-                        transcriptResponse.subtitle_uuid
-                      );
-
-                      const subtitles: Array<Subtitle> = [{
-                        uuid: transcriptResponse.subtitle_uuid,
-                        language: language,
-                        subtitle_url: transcriptResponse.subtitle_url,
-                        created_at: new Date().toISOString(),
-                        video_uuid: uploadResponse.video_uuid,
-                        video_original_name: selectedFile.name,
-                        format: 'srt',
-                        updated_at: new Date().toISOString()
-                      }];
-                      
-                      const subtitle_languages: Array<SupportedLanguageType> = [language];
-                      
-                      // Update video in list with dubbed info and burned video URL
-                      const updatedVideo = {
-                        uuid: uploadResponse.video_uuid,
-                        video_url: newVideo.video_url,
-                        original_name: selectedFile.name,
-                        status: 'completed' as const,
-                        duration_minutes: statusResponse.duration_minutes || 0,
-                        has_subtitles: true,
-                        subtitle_languages,
-                        subtitles,
-                        processed_video_url: dubbedVideoResponse.processed_video_url,
-                        dubbing_id: generationResponse.dubbing_id,
-                        is_dubbed_audio: true,
-                        burned_video_url: burnResponse.burned_video_url,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        processing_type: processingType
-                      } as Video;
-
-                      // Update video in list
-                      setVideoList((prev: Array<Video>) => prev.map((v) => 
-                        v.uuid === uploadResponse.video_uuid ? updatedVideo : v
-                      ));
-
-                      // Update user details to reflect usage
-                      await fetchUserDetails();
-
-                      return;
-                    }
-                  } catch (error) {
-                    console.error('Error getting dubbed video or transcript:', error);
-                    // Continue polling even on error
-                    setTimeout(pollDubbingStatus, 5000);
-                  }
-                } else {
-                  // Continue polling if not dubbed yet
-                  setTimeout(pollDubbingStatus, 5000);
-                }
-              } catch (error) {
-                console.error('Error checking dubbing status:', error);
-                // Continue polling even on error
-                setTimeout(pollDubbingStatus, 5000);
-              }
-            };
-
-            // Start polling
-            pollDubbingStatus();
-
-            if (processingType === 'dubbing' || processingType === 'voiceover') {
-              // Update message for dubbing/voiceover processing
+            if (processingType !== 'subtitles' && generationResponse.dubbing_id) {
+              // Update video with appropriate message
               setVideoList(prev => prev.map(v => 
                 v.uuid === uploadResponse.video_uuid 
-                  ? { ...v, processingMessage: processingType === 'dubbing' ? 'Dubbing Audio...' : 'Generating Voiceover...' }
+                  ? { 
+                      ...v, 
+                      processingMessage: processingType === 'dubbing' ? 'Dubbing Audio...' : 'Generating Voiceover...'
+                    }
                   : v
               ));
-              return "Video uploaded. Processing in progress...";
-            }
 
-            return "Video uploaded and subtitles generated successfully!";
-          }
+              // Start polling for dubbing status
+              const pollDubbingStatus = async () => {
+                if (!generationResponse.dubbing_id) return;
+                
+                try {
+                  const statusResponse = await videos.checkDubbingStatus(
+                    uploadResponse.video_uuid,
+                    generationResponse.dubbing_id
+                  );
 
-          // If we have a subtitle_uuid, proceed with burning subtitles
-          if (generationResponse.subtitle_uuid) {
-            // Update message for burning subtitles
-            setVideoList(prev => prev.map(v => 
-              v.uuid === uploadResponse.video_uuid 
-                ? { ...v, processingMessage: 'Burning Subtitles...' }
-                : v
-            ));
+                  if (statusResponse.status === 'dubbed') {
+                    try {
+                      // First get the dubbed video
+                      const dubbedVideoResponse = await videos.getDubbedVideo(
+                        uploadResponse.video_uuid,
+                        generationResponse.dubbing_id
+                      );
 
-            try {
-              const burnResponse = await videos.burnSubtitles(
-                uploadResponse.video_uuid,
-                generationResponse.subtitle_uuid
-              );
+                      // Then get the transcript
+                      const transcriptResponse = await videos.getTranscriptForDub(
+                        uploadResponse.video_uuid,
+                        generationResponse.dubbing_id
+                      );
 
-              if (burnResponse.status === 'completed' && generationResponse.language) {
-                // Update video with both subtitle and burned video info
-                const updatedVideo: Video = {
-                  ...newVideo,
-                  status: 'completed',
-                  has_subtitles: true,
-                  burned_video_url: burnResponse.burned_video_url,
-                  subtitle_languages: [generationResponse.language as SupportedLanguageType],
-                  subtitles: [{
-                    uuid: generationResponse.subtitle_uuid,
-                    language: generationResponse.language as SupportedLanguageType,
-                    subtitle_url: generationResponse.subtitle_url || '',
-                    created_at: new Date().toISOString(),
-                    video_uuid: uploadResponse.video_uuid,
-                    video_original_name: selectedFile.name,
-                    format: 'srt',
-                    updated_at: new Date().toISOString()
-                  }]
-                };
+                      if (transcriptResponse.language && transcriptResponse.subtitle_uuid && transcriptResponse.subtitle_url) {
+                        const language = transcriptResponse.language as SupportedLanguageType;
 
-                // Update video in list
-                setVideoList(prev => prev.map(v => 
-                  v.uuid === uploadResponse.video_uuid ? updatedVideo : v
-                ));
+                        // Call burn_subtitles API with the transcript
+                        const burnResponse = await videos.burnSubtitles(
+                          uploadResponse.video_uuid,
+                          transcriptResponse.subtitle_uuid
+                        );
 
-                // Update user details to reflect usage
-                await fetchUserDetails();
+                        const subtitles: Array<Subtitle> = [{
+                          uuid: transcriptResponse.subtitle_uuid,
+                          language: language,
+                          subtitle_url: transcriptResponse.subtitle_url,
+                          created_at: new Date().toISOString(),
+                          video_uuid: uploadResponse.video_uuid,
+                          video_original_name: selectedFile.name,
+                          format: 'srt',
+                          updated_at: new Date().toISOString()
+                        }];
+                        
+                        const subtitle_languages: Array<SupportedLanguageType> = [language];
+                        
+                        // Update video in list with dubbed info and burned video URL
+                        const updatedVideo = {
+                          uuid: uploadResponse.video_uuid,
+                          video_url: newVideo.video_url,
+                          original_name: selectedFile.name,
+                          status: 'completed' as const,
+                          duration_minutes: statusResponse.duration_minutes || 0,
+                          has_subtitles: true,
+                          subtitle_languages,
+                          subtitles,
+                          processed_video_url: dubbedVideoResponse.processed_video_url,
+                          dubbing_id: generationResponse.dubbing_id,
+                          is_dubbed_audio: true,
+                          burned_video_url: burnResponse.burned_video_url,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                          processing_type: processingType
+                        } as Video;
 
-                return "Video uploaded and subtitles burned successfully!";
-              }
-            } catch (burnError) {
-              console.error('Error burning subtitles:', burnError);
-              throw new Error('Failed to burn subtitles into video');
-            }
-          }
+                        // Update video in list
+                        setVideoList((prev: Array<Video>) => prev.map((v) => 
+                          v.uuid === uploadResponse.video_uuid ? updatedVideo : v
+                        ));
 
-          // Refresh user details to update minutes
-          await fetchUserDetails();
+                        // Update user details to reflect usage
+                        await fetchUserDetails();
 
-          return processingType === 'subtitles'
-            ? "Video uploaded and subtitles generated successfully!"
-            : "Video uploaded. Dubbing and subtitle generation in progress...";
-        } catch (err: any) {
-          // Update video status to failed
-          setVideoList(prev => prev.map(v => {
-            if (v.uuid === uploadResponse.video_uuid) {
-              return {
-                ...v,
-                status: 'failed'
+                        return;
+                      }
+                    } catch (error) {
+                      console.error('Error getting dubbed video or transcript:', error);
+                      // Continue polling even on error
+                      setTimeout(pollDubbingStatus, 5000);
+                    }
+                  } else {
+                    // Continue polling if not dubbed yet
+                    setTimeout(pollDubbingStatus, 5000);
+                  }
+                } catch (error) {
+                  console.error('Error checking dubbing status:', error);
+                  // Continue polling even on error
+                  setTimeout(pollDubbingStatus, 5000);
+                }
               };
-            }
-            return v;
-          }));
 
-          // Extract and format the error message
-          let errorMessage = 'Failed to generate subtitles';
-          
-          // Handle subtitle generation API errors
-          const statusCode = err.response?.status;
-          if (err.response?.data?.detail) {
-            const detail = err.response.data.detail;
-            
-            // Handle OpenAI specific errors
-            if (detail.includes('OpenAI API error')) {
-              try {
-                const openAIError = JSON.parse(
-                  detail.substring(detail.indexOf('{'))
-                );
-                errorMessage = openAIError.error.message || 'Failed to process audio';
-              } catch {
-                errorMessage = 'Failed to process audio file';
+              // Start polling
+              pollDubbingStatus();
+
+              if (processingType === 'dubbing' || processingType === 'voiceover') {
+                // Update message for dubbing/voiceover processing
+                setVideoList(prev => prev.map(v => 
+                  v.uuid === uploadResponse.video_uuid 
+                    ? { ...v, processingMessage: processingType === 'dubbing' ? 'Dubbing Audio...' : 'Generating Voiceover...' }
+                    : v
+                ));
+                return "Video processed successfully!";
               }
-            } else {
-              // Handle other API errors
-              switch (statusCode) {
-                case 400:
-                  errorMessage = `Invalid request: ${detail}`;
-                  break;
-                case 422:
-                  errorMessage = `Validation error: ${detail}`;
-                  break;
-                case 500:
-                  errorMessage = 'Server error while generating subtitles. Please try again.';
-                  break;
-                default:
-                  errorMessage = detail;
+
+              return "Video processed successfully!";
+            }
+
+            // If we have a subtitle_uuid, proceed with burning subtitles
+            if (generationResponse.subtitle_uuid) {
+              // Update message for burning subtitles
+              setVideoList(prev => prev.map(v => 
+                v.uuid === uploadResponse.video_uuid 
+                  ? { ...v, processingMessage: 'Burning Subtitles...' }
+                  : v
+              ));
+
+              try {
+                const burnResponse = await videos.burnSubtitles(
+                  uploadResponse.video_uuid,
+                  generationResponse.subtitle_uuid
+                );
+
+                if (burnResponse.status === 'completed' && generationResponse.language) {
+                  // Update video with both subtitle and burned video info
+                  const updatedVideo: Video = {
+                    ...newVideo,
+                    status: 'completed',
+                    has_subtitles: true,
+                    burned_video_url: burnResponse.burned_video_url,
+                    subtitle_languages: [generationResponse.language as SupportedLanguageType],
+                    subtitles: [{
+                      uuid: generationResponse.subtitle_uuid,
+                      language: generationResponse.language as SupportedLanguageType,
+                      subtitle_url: generationResponse.subtitle_url || '',
+                      created_at: new Date().toISOString(),
+                      video_uuid: uploadResponse.video_uuid,
+                      video_original_name: selectedFile.name,
+                      format: 'srt',
+                      updated_at: new Date().toISOString()
+                    }]
+                  };
+
+                  // Update video in list
+                  setVideoList(prev => prev.map(v => 
+                    v.uuid === uploadResponse.video_uuid ? updatedVideo : v
+                  ));
+
+                  // Update user details to reflect usage
+                  await fetchUserDetails();
+
+                  return "Video processed successfully!";
+                }
+              } catch (burnError) {
+                console.error('Error burning subtitles:', burnError);
+                throw new Error('Failed to burn subtitles into video');
               }
             }
+
+            // Refresh user details to update minutes
+            await fetchUserDetails();
+
+            return processingType === 'subtitles'
+              ? "Video uploaded and subtitles generated successfully!"
+              : "Video uploaded. Dubbing and subtitle generation in progress...";
+          } catch (err: any) {
+            // Update video status to failed
+            setVideoList(prev => prev.map(v => {
+              if (v.uuid === uploadResponse.video_uuid) {
+                return {
+                  ...v,
+                  status: 'failed'
+                };
+              }
+              return v;
+            }));
+
+            // Extract and format the error message
+            let errorMessage = 'Failed to generate subtitles';
+            
+            // Handle subtitle generation API errors
+            const statusCode = err.response?.status;
+            if (err.response?.data?.detail) {
+              const detail = err.response.data.detail;
+              
+              // Handle OpenAI specific errors
+              if (detail.includes('OpenAI API error')) {
+                try {
+                  const openAIError = JSON.parse(
+                    detail.substring(detail.indexOf('{'))
+                  );
+                  errorMessage = openAIError.error.message || 'Failed to process audio';
+                } catch {
+                  errorMessage = 'Failed to process audio file';
+                }
+              } else {
+                // Handle other API errors
+                switch (statusCode) {
+                  case 400:
+                    errorMessage = `Invalid request: ${detail}`;
+                    break;
+                  case 422:
+                    errorMessage = `Validation error: ${detail}`;
+                    break;
+                  case 500:
+                    errorMessage = 'Server error while generating subtitles. Please try again.';
+                    break;
+                  default:
+                    errorMessage = detail;
+                }
+              }
+            }
+            throw new Error(errorMessage);
           }
-          throw new Error(errorMessage);
+        } catch (err: any) {
+          setError(err.message || 'Failed to process video');
+          console.error('Error processing video:', err);
+          throw new Error(err.message || 'Failed to process video');
+        } finally {
+          setIsUploading(false);
+          setSelectedFile(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
         }
       } catch (err: any) {
         setError(err.message || 'Failed to process video');
@@ -1598,18 +1624,11 @@ export function DashboardOverview() {
       }
     })();
 
-    // Show toast with promise
-    toast.promise(
-      uploadPromise,
-      {
-        loading: 'Uploading video...',
-        success: (message) => message,
-        error: (err) => err.message
-      },
-      {
-        duration: 5000,
-      }
-    );
+    // Show toast with promise but without the loading state
+    toast.promise(uploadPromise, {
+      success: (message) => message,
+      error: (err) => err.message
+    });
   };
 
   const handleUploadClick = () => {
@@ -1633,8 +1652,6 @@ export function DashboardOverview() {
     setSubtitleStyle(style);
     // Close the modal
     setShowStyleModal(false);
-    // Show success toast
-    toast.success("Subtitle style saved!");
   };
 
   if (isLoading) {
@@ -1655,6 +1672,12 @@ export function DashboardOverview() {
 
   return (
     <div className="p-6 pl-8 relative">
+      <Toaster 
+        position="top-center"
+        closeButton
+        richColors
+        expand
+      />
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-gray-900">
           Videos
