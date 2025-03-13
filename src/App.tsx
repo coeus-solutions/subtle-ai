@@ -15,6 +15,7 @@ import { PrivacyPolicyPage } from '@/pages/privacy-policy';
 import { TermsOfServicePage } from '@/pages/terms-of-service';
 import { BillingPage } from '@/pages/dashboard/billing';
 import { SettingsPage } from '@/pages/dashboard/settings';
+import { WatchPage } from '@/pages/watch';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -112,6 +113,7 @@ function AppRoutes() {
           </DashboardLayout>
         </ProtectedRoute>
       } />
+      <Route path="/watch/:shareUuid" element={<WatchPage />} />
     </Routes>
   );
 }

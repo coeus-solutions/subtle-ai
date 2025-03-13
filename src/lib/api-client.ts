@@ -91,6 +91,23 @@ export interface VideoDeleteResponse {
   detail?: string;
 }
 
+export interface VideoShareResponse {
+  message: string;
+  video_uuid: string;
+  share_uuid: string;
+  is_active: boolean;
+  expires_at: string;
+  created_at: string;
+  video_url: string;
+  original_name: string | null;
+  duration_minutes: number;
+  status: string;
+  processed_video_url: string | null;
+  burned_video_url: string | null;
+  is_dubbed_audio: boolean;
+  processing_type: ProcessingType;
+}
+
 // Subtitle Types
 export interface Subtitle {
   uuid: string;
@@ -183,6 +200,23 @@ export interface SubtitleStyleResponse {
   message: string;
   video_uuid: string;
   style: SubtitleStyle;
+}
+
+export interface SharedVideoResponse {
+  message: string;
+  video_uuid: string;
+  share_uuid: string;
+  is_active: boolean;
+  expires_at: string;
+  created_at: string;
+  video_url: string;
+  original_name: string | null;
+  duration_minutes: number;
+  status: string;
+  processed_video_url: string | null;
+  burned_video_url: string | null;
+  is_dubbed_audio: boolean;
+  processing_type: ProcessingType;
 }
 
 const apiClient = axios.create({
@@ -342,6 +376,11 @@ export const videos = {
     );
     return response.data;
   },
+
+  async share(videoUuid: string): Promise<VideoShareResponse> {
+    const response = await apiClient.post(`/videos/${videoUuid}/share`);
+    return response.data;
+  },
 };
 
 export const subtitles = {
@@ -361,6 +400,13 @@ export const subtitles = {
 export const users = {
   async me(): Promise<UserDetails> {
     const response = await apiClient.get('/users/me');
+    return response.data;
+  }
+};
+
+export const shared = {
+  async watch(shareUuid: string): Promise<SharedVideoResponse> {
+    const response = await apiClient.get(`/shared/watch/${shareUuid}`);
     return response.data;
   }
 };

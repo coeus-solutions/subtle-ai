@@ -10,6 +10,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 const SUPPORTED_LANGUAGES = [
   "English", "Spanish", "French", "German", "Japanese", "Russian", "Italian", "Chinese", "Turkish", "Korean", "Portuguese"
@@ -639,6 +643,7 @@ export function LandingPage() {
   const [currentLanguage, setCurrentLanguage] = useState(0);
   const [currentFeature, setCurrentFeature] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   useEffect(() => {
     const langTimer = setInterval(() => {
@@ -744,16 +749,38 @@ export function LandingPage() {
               className="text-center"
             >
               <motion.h1 
-                className="text-5xl md:text-7xl font-bold mb-6"
+                className="text-5xl md:text-7xl font-bold relative"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                  Transform Your Videos
-                </span>
-                <br />
-                <span className="text-[0.85em] bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <div className="text-center">
+                  <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                    Transform Your Videos
+                  </span>
+                  <div className="absolute -right-3 top-0 inline-block transform -rotate-[165deg]">
+                    <motion.button
+                      onClick={() => setShowVideoModal(true)}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ 
+                        scale: 1.05,
+                      }}
+                      className="flex items-center gap-3 px-3 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg border border-white/20 group transition-all duration-300"
+                    >
+                      <div className="relative">
+                        <div className="relative bg-blue-500/50 rounded-full p-1.5">
+                          <PlayCircle className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-0.5 rotate-180">
+                        <span className="text-[11px] uppercase tracking-wider text-white font-bold whitespace-nowrap">Watch Demo</span>
+                        <span className="text-[12px] font-medium text-white/90 whitespace-nowrap">See it in Action</span>
+                      </div>
+                    </motion.button>
+                  </div>
+                </div>
+                <span className="text-[0.85em] bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent block mb-8">
                   With AI-Powered Audio & Subtitles
                 </span>
               </motion.h1>
@@ -780,6 +807,7 @@ export function LandingPage() {
                   <br />
                   with fully customizable styles and voices.
                 </p>
+
                 <div className="flex flex-wrap gap-3 justify-center items-center mt-6 mb-10">
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-full border border-white/10">
                     <Type className="w-4 h-4 text-blue-400" />
@@ -1327,6 +1355,22 @@ export function LandingPage() {
           </motion.div>
         </section>
       </main>
+
+      {/* Video Modal */}
+      <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-none">
+          <video
+            src="/videos/subtle-ai-overview.mp4"
+            className="w-full aspect-video"
+            controls
+            autoPlay
+            controlsList="nodownload"
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            Your browser does not support the video tag.
+          </video>
+        </DialogContent>
+      </Dialog>
 
       <style>{`
         @keyframes blob {
