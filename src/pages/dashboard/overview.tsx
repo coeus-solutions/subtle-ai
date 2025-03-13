@@ -1488,7 +1488,7 @@ export function DashboardOverview() {
                     ? { ...v, processingMessage: processingType === 'dubbing' ? 'Dubbing Audio...' : 'Generating Voiceover...' }
                     : v
                 ));
-                return "Video processed successfully!";
+                return "Video is being processed...";
               }
 
               return "Video processed successfully!";
